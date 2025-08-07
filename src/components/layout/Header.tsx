@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Menu, X, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -36,8 +37,8 @@ const Header = () => {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-10">
-            <Link to="/browse" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
-              Browse
+            <Link to="/shop" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+              Shop
             </Link>
             <Link to="/community" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Community
@@ -46,9 +47,13 @@ const Header = () => {
 
           {/* Actions */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" className="hidden md:inline-flex text-muted-foreground hover:text-foreground">
-              Sign In
-            </Button>
+            {/* Mock logged in state - replace with real auth */}
+            <Link to="/profile">
+              <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary/20">
+                <AvatarImage src="/api/placeholder/40/40" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+            </Link>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 h-12 rounded-full">
               <Upload className="h-4 w-4 mr-2" />
               Upload
