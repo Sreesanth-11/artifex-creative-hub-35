@@ -25,7 +25,7 @@ import {
 const Community = () => {
   const [activeTab, setActiveTab] = useState("feed");
 
-  const posts = [
+  const allPosts = [
     {
       id: 1,
       author: "Sarah Chen",
@@ -39,6 +39,9 @@ const Community = () => {
       shares: 7,
       tags: ["logo", "branding", "process"],
       verified: true,
+      category: "feed",
+      isFollowing: true,
+      popularity: 124,
     },
     {
       id: 2,
@@ -53,6 +56,9 @@ const Community = () => {
       shares: 15,
       tags: ["ui-kit", "mobile", "fintech"],
       verified: true,
+      category: "feed",
+      isFollowing: false,
+      popularity: 89,
     },
     {
       id: 3,
@@ -67,8 +73,77 @@ const Community = () => {
       shares: 9,
       tags: ["illustration", "characters", "children"],
       verified: false,
+      category: "feed",
+      isFollowing: true,
+      popularity: 156,
+    },
+    {
+      id: 4,
+      author: "Alex Rodriguez",
+      authorAvatar: "/api/placeholder/40/40",
+      title: "Motion graphics showreel 2024",
+      content: "My motion graphics work from this year. From brand animations to explainer videos, here's what I've been working on.",
+      image: "/api/placeholder/600/400",
+      timestamp: "1 hour ago",
+      likes: 203,
+      comments: 31,
+      shares: 18,
+      tags: ["motion", "animation", "showreel"],
+      verified: true,
+      category: "latest",
+      isFollowing: true,
+      popularity: 203,
+    },
+    {
+      id: 5,
+      author: "Lisa Park",
+      authorAvatar: "/api/placeholder/40/40",
+      title: "Brand identity for sustainable fashion",
+      content: "Complete brand identity design for an eco-friendly fashion startup. From logo to packaging design.",
+      image: "/api/placeholder/600/400",
+      timestamp: "3 hours ago",
+      likes: 178,
+      comments: 22,
+      shares: 12,
+      tags: ["branding", "sustainability", "fashion"],
+      verified: true,
+      category: "popular",
+      isFollowing: false,
+      popularity: 178,
+    },
+    {
+      id: 6,
+      author: "David Kim",
+      authorAvatar: "/api/placeholder/40/40",
+      title: "UX case study - Healthcare app redesign",
+      content: "Deep dive into redesigning a healthcare application. Research, user testing, and final design decisions.",
+      image: "/api/placeholder/600/400",
+      timestamp: "5 hours ago",
+      likes: 245,
+      comments: 38,
+      shares: 25,
+      tags: ["ux", "healthcare", "case-study"],
+      verified: true,
+      category: "popular",
+      isFollowing: true,
+      popularity: 245,
     },
   ];
+
+  const getFilteredPosts = () => {
+    switch (activeTab) {
+      case "following":
+        return allPosts.filter(post => post.isFollowing);
+      case "popular":
+        return allPosts.filter(post => post.popularity > 150).sort((a, b) => b.popularity - a.popularity);
+      case "latest":
+        return allPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      default:
+        return allPosts;
+    }
+  };
+
+  const posts = getFilteredPosts();
 
   const trendingTopics = [
     { name: "Logo Design", posts: "2.4k" },
