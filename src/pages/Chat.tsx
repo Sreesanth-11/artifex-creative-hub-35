@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ArrowLeft,
   Send,
@@ -26,7 +27,9 @@ const Chat = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [selectedChat, setSelectedChat] = useState(userId || "1");
+  const [showFollowersList, setShowFollowersList] = useState(!userId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Mock followers/chat users data
   const followers = [
@@ -137,15 +140,91 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Mobile followers list view
+  if (isMobile && showFollowersList) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        
+        <main className="pt-8">
+          <div className="container mx-auto px-4">
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-bold">Messages</h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/profile")}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </div>
+              
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  className="pl-10 bg-background"
+                />
+              </div>
+
+              <div className="space-y-2">
+                {followers.map((follower) => (
+                  <Card
+                    key={follower.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      setSelectedChat(follower.id);
+                      setShowFollowersList(false);
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <Avatar>
+                            <AvatarImage src={follower.avatar} />
+                            <AvatarFallback>{follower.name[0]}</AvatarFallback>
+                          </Avatar>
+                          {follower.isOnline && (
+                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-medium truncate">{follower.name}</h3>
+                            <span className="text-xs text-muted-foreground">{follower.timestamp}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{follower.lastMessage}</p>
+                        </div>
+                        
+                        {follower.unreadCount > 0 && (
+                          <Badge className="bg-primary text-primary-foreground">
+                            {follower.unreadCount}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-8">
-        <div className="container mx-auto px-4">
-          <div className="flex h-[calc(100vh-200px)] border border-border rounded-lg overflow-hidden">
-            {/* Followers Sidebar */}
-            <div className="w-80 border-r border-border bg-muted/30">
+      <main className={isMobile ? "pt-4" : "pt-8"}>
+        <div className={isMobile ? "px-2" : "container mx-auto px-4"}>
+          <div className={`flex ${isMobile ? 'h-[calc(100vh-100px)]' : 'h-[calc(100vh-200px)]'} ${isMobile ? '' : 'border border-border rounded-lg'} overflow-hidden`}>
+            {/* Followers Sidebar - Hidden on Mobile */}
+            {!isMobile && (
+              <div className="w-80 border-r border-border bg-muted/30">
               {/* Sidebar Header */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-center justify-between">
@@ -210,14 +289,24 @@ const Chat = () => {
                   </div>
                 ))}
               </div>
-            </div>
+              </div>
+            )}
 
             {/* Chat Area */}
             <div className="flex-1 flex flex-col">
               {/* Chat Header */}
-              <div className="p-4 border-b border-border bg-background">
+              <div className={`${isMobile ? 'p-3' : 'p-4'} border-b border-border bg-background`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
+                    {isMobile && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowFollowersList(true)}
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Avatar>
                       <AvatarImage src={currentUser.avatar} />
                       <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
@@ -237,22 +326,24 @@ const Chat = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="icon">
-                      <Phone className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Video className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {!isMobile && (
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="icon">
+                        <Phone className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <Video className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10">
+              <div className={`flex-1 overflow-y-auto ${isMobile ? 'p-3' : 'p-4'} space-y-4 bg-muted/10`}>
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -284,14 +375,18 @@ const Chat = () => {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t border-border bg-background">
+              <div className={`${isMobile ? 'p-3' : 'p-4'} border-t border-border bg-background`}>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="icon">
-                    <Paperclip className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Image className="w-4 h-4" />
-                  </Button>
+                  {!isMobile && (
+                    <>
+                      <Button variant="ghost" size="icon">
+                        <Paperclip className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <Image className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                   
                   <div className="flex-1 relative">
                     <Input
@@ -299,15 +394,17 @@ const Chat = () => {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="pr-10"
+                      className={isMobile ? "" : "pr-10"}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 h-full"
-                    >
-                      <Smile className="w-4 h-4" />
-                    </Button>
+                    {!isMobile && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full"
+                      >
+                        <Smile className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   
                   <Button onClick={sendMessage} disabled={!message.trim()}>

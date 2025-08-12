@@ -40,6 +40,9 @@ const Header = () => {
             <Link to="/shop" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Shop
             </Link>
+            <Link to="/chat" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+              Chat
+            </Link>
             <Link to="/community" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Community
             </Link>
@@ -87,10 +90,16 @@ const Header = () => {
               {/* Mobile Navigation */}
               <nav className="space-y-4">
                 <Link
-                  to="/browse"
+                  to="/shop"
                   className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
                 >
-                  Browse
+                  Shop
+                </Link>
+                <Link
+                  to="/chat"
+                  className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  Chat
                 </Link>
                 <Link
                   to="/community"
