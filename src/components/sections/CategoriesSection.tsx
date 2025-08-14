@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Palette, Image, Type, Shapes, Smartphone, Globe } from "lucide-react";
 
 const CategoriesSection = () => {
@@ -56,10 +57,8 @@ const CategoriesSection = () => {
           {categories.map((category) => {
             const Icon = category.icon;
             return (
-              <div 
-                key={category.id} 
-                className="group cursor-pointer bg-background rounded-2xl p-8 text-center space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-              >
+              <Link key={category.id} to="/shop">
+                <div className="group cursor-pointer bg-background rounded-2xl p-8 text-center space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                 <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
                   <Icon className="w-8 h-8 text-primary group-hover:text-primary-foreground" />
                 </div>
@@ -72,7 +71,8 @@ const CategoriesSection = () => {
                     {category.count} items
                   </p>
                 </div>
-              </div>
+                </div>
+              </Link>
             );
           })}
         </div>

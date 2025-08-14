@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,10 +111,8 @@ const FeaturedDesigners = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {featuredDesigners.map((designer) => (
-            <Card 
-              key={designer.id} 
-              className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1"
-            >
+            <Link key={designer.id} to={`/profile/${designer.id}`}>
+              <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1">
               <CardContent className="p-6 text-center space-y-4">
                 {/* Avatar & Verification */}
                 <div className="relative mx-auto w-20 h-20">
@@ -214,13 +213,16 @@ const FeaturedDesigners = () => {
                 </Button>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
 
         <div className="text-center">
-          <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-            Discover More Designers
-          </Button>
+          <Link to="/community">
+            <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+              Discover More Designers
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

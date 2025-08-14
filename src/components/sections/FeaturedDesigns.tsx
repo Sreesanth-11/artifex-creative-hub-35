@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +76,8 @@ const FeaturedDesigns = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {featuredDesigns.map((design) => (
-            <Card key={design.id} className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+            <Link key={design.id} to={`/product/${design.id}`}>
+              <Card className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardContent className="p-0">
                 <div className="relative overflow-hidden">
                   <img
@@ -110,14 +112,17 @@ const FeaturedDesigns = () => {
                 </div>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
 
         <div className="text-center">
-          <Button size="lg" variant="outline" className="border-2 hover:bg-muted rounded-full px-8">
-            View All Designs
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          <Link to="/shop">
+            <Button size="lg" variant="outline" className="border-2 hover:bg-muted rounded-full px-8">
+              View All Designs
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

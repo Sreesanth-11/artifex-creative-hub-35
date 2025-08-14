@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
@@ -18,20 +19,24 @@ const CallToAction = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Button 
-              size="lg" 
-              className="bg-secondary hover:bg-secondary/90 text-secondary-foreground text-lg px-10 h-16 rounded-full"
-            >
-              Start Selling Today
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-2 hover:bg-muted text-lg px-10 h-16 rounded-full"
-            >
-              Browse Designs
-            </Button>
+            <Link to="/add-product">
+              <Button 
+                size="lg" 
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground text-lg px-10 h-16 rounded-full"
+              >
+                Start Selling Today
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+            <Link to="/shop">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-2 hover:bg-muted text-lg px-10 h-16 rounded-full"
+              >
+                Browse Designs
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

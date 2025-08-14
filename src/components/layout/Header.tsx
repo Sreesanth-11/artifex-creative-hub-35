@@ -46,6 +46,9 @@ const Header = () => {
             <Link to="/community" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
               Community
             </Link>
+            <Link to="/downloads" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+              Downloads
+            </Link>
           </nav>
 
           {/* Actions */}
@@ -106,6 +109,12 @@ const Header = () => {
                   className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
                 >
                   Community
+                </Link>
+                <Link
+                  to="/downloads"
+                  className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  Downloads
                 </Link>
               </nav>
 

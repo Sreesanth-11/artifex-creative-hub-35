@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowRight, Play } from "lucide-react";
@@ -27,24 +28,28 @@ const HeroSection = () => {
                 placeholder="What are you looking for?"
                 className="pl-14 pr-32 h-16 text-lg bg-muted border-0 focus:ring-2 focus:ring-primary/20 rounded-full"
               />
-              <Button 
-                size="lg" 
-                className="absolute right-2 top-2 bottom-2 bg-primary hover:bg-primary/90 rounded-full px-8"
-              >
-                Search
-              </Button>
+              <Link to="/shop">
+                <Button 
+                  size="lg" 
+                  className="absolute right-2 top-2 bottom-2 bg-primary hover:bg-primary/90 rounded-full px-8"
+                >
+                  Search
+                </Button>
+              </Link>
             </div>
           </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button 
-              size="lg" 
-              className="bg-secondary hover:bg-secondary/90 text-secondary-foreground text-lg px-8 h-14 rounded-full"
-            >
-              Start Creating
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
+            <Link to="/add-product">
+              <Button 
+                size="lg" 
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground text-lg px-8 h-14 rounded-full"
+              >
+                Start Creating
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
             <Button 
               size="lg" 
               variant="outline" 
