@@ -24,6 +24,7 @@ import {
 
 const Community = () => {
   const [activeTab, setActiveTab] = useState("feed");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const allPosts = [
     {
@@ -131,15 +132,28 @@ const Community = () => {
   ];
 
   const getFilteredPosts = () => {
+    let filteredPosts = allPosts;
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filteredPosts = filteredPosts.filter(post => 
+        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    
+    // Filter by tab
     switch (activeTab) {
       case "following":
-        return allPosts.filter(post => post.isFollowing);
+        return filteredPosts.filter(post => post.isFollowing);
       case "popular":
-        return allPosts.filter(post => post.popularity > 150).sort((a, b) => b.popularity - a.popularity);
+        return filteredPosts.filter(post => post.popularity > 150).sort((a, b) => b.popularity - a.popularity);
       case "latest":
-        return allPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        return filteredPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       default:
-        return allPosts;
+        return filteredPosts;
     }
   };
 
@@ -213,6 +227,8 @@ const Community = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search community..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-background border-border"
                 />
               </div>

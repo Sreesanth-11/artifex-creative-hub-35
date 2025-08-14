@@ -287,11 +287,20 @@ All components are built with modern design principles and are fully customizabl
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => navigate(`/chat/${product.designer.name.replace(' ', '-').toLowerCase()}`)}
+                    >
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
-                    <Button className="flex-1">Follow</Button>
+                    <Button 
+                      className="flex-1"
+                      onClick={() => console.log("Following", product.designer.name)}
+                    >
+                      Follow
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -385,7 +394,12 @@ All components are built with modern design principles and are fully customizabl
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-bold">Reviews ({product.reviewCount})</h3>
-                      <Button variant="outline">Write a Review</Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => console.log("Opening review modal")}
+                      >
+                        Write a Review
+                      </Button>
                     </div>
                     
                     <div className="space-y-6">
@@ -468,7 +482,11 @@ All components are built with modern design principles and are fully customizabl
             <h2 className="text-2xl font-bold mb-6">Related Products</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((relatedProduct) => (
-                <Card key={relatedProduct.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                <Card 
+                  key={relatedProduct.id} 
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => navigate(`/product/${relatedProduct.id}`)}
+                >
                   <CardContent className="p-0">
                     <img
                       src={relatedProduct.image}
