@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WriteReviewDialog } from "@/components/ui/write-review-dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Heart,
@@ -27,8 +29,10 @@ import {
 const ProductDetail = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLiked, setIsLiked] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [writeReviewDialogOpen, setWriteReviewDialogOpen] = useState(false);
 
   // Mock product data
   const product = {
@@ -396,7 +400,7 @@ All components are built with modern design principles and are fully customizabl
                       <h3 className="text-xl font-bold">Reviews ({product.reviewCount})</h3>
                       <Button 
                         variant="outline"
-                        onClick={() => console.log("Opening review modal")}
+                        onClick={() => setWriteReviewDialogOpen(true)}
                       >
                         Write a Review
                       </Button>
@@ -512,6 +516,12 @@ All components are built with modern design principles and are fully customizabl
       </main>
 
       <Footer />
+      
+      <WriteReviewDialog 
+        open={writeReviewDialogOpen} 
+        onOpenChange={setWriteReviewDialogOpen}
+        productName={product.title}
+      />
     </div>
   );
 };

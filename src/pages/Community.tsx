@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
+import { ShareWorkDialog } from "@/components/ui/share-work-dialog";
 import {
   Heart,
   MessageCircle,
@@ -25,6 +29,8 @@ import {
 const Community = () => {
   const [activeTab, setActiveTab] = useState("feed");
   const [searchQuery, setSearchQuery] = useState("");
+  const [shareWorkDialogOpen, setShareWorkDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   const allPosts = [
     {
@@ -205,11 +211,17 @@ const Community = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-gradient-primary">
+                <Button 
+                  className="bg-gradient-primary"
+                  onClick={() => setShareWorkDialogOpen(true)}
+                >
                   <PlusCircle className="w-4 h-4 mr-2" />
                   Share Your Work
                 </Button>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate("/browse")}
+                >
                   <Users className="w-4 h-4 mr-2" />
                   Find Designers
                 </Button>
@@ -332,13 +344,39 @@ const Community = () => {
                       <CardContent className="p-6 space-y-4">
                         {/* Post Header */}
                         <div className="flex items-start space-x-3">
-                          <Avatar className="h-12 w-12">
+                          <Avatar 
+                            className="h-12 w-12 cursor-pointer"
+                            onClick={() => navigate(`/profile/${post.author.toLowerCase().replace(" ", "-")}`)}
+                          >
                             <AvatarImage src={post.authorAvatar} />
                             <AvatarFallback>{post.author[0]}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
-                              <h3 className="font-semibold">{post.author}</h3>
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <h3 
+                                    className="font-semibold cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => navigate(`/profile/${post.author.toLowerCase().replace(" ", "-")}`)}
+                                  >
+                                    {post.author}
+                                  </h3>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-auto p-0" side="bottom" align="start">
+                                  <ProfileHoverCard
+                                    name={post.author}
+                                    avatar={post.authorAvatar}
+                                    bio="Creative designer passionate about beautiful interfaces and user experiences."
+                                    followers="12.5k"
+                                    likes="45.2k"
+                                    downloads="8.9k"
+                                    verified={post.verified}
+                                    isFollowing={post.isFollowing}
+                                    onFollow={() => console.log("Follow user")}
+                                    onMessage={() => navigate("/chat")}
+                                  />
+                                </HoverCardContent>
+                              </HoverCard>
                               {post.verified && (
                                 <Award className="w-4 h-4 text-accent" />
                               )}
@@ -417,6 +455,11 @@ const Community = () => {
       </main>
 
       <Footer />
+      
+      <ShareWorkDialog 
+        open={shareWorkDialogOpen} 
+        onOpenChange={setShareWorkDialogOpen} 
+      />
     </div>
   );
 };
