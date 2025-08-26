@@ -1,4 +1,6 @@
 import { useParams, Link } from "react-router-dom";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +56,8 @@ const PublicProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pt-16">
+    <div className="min-h-screen bg-background">
+      <Header />
       {/* Cover Image */}
       <div className="relative h-80 bg-gradient-to-r from-primary/20 to-secondary/20">
         <img
@@ -183,6 +186,8 @@ const PublicProfile = () => {
           ))}
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
