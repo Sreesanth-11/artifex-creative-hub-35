@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -25,30 +25,60 @@ import {
   MapPin,
   Calendar,
   Link as LinkIcon,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { user, logout, updateUser, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
 
-  // Mock user data
+  // User data from auth context
   const [userData, setUserData] = useState({
-    name: "Alex Johnson",
-    email: "alex.johnson@email.com",
-    bio: "Passionate UI/UX designer with 5+ years of experience creating beautiful and functional digital experiences.",
-    location: "San Francisco, CA",
-    website: "alexjohnson.design",
-    joinDate: "March 2023",
-    avatar: "/api/placeholder/120/120",
+    name: user?.name || "",
+    email: user?.email || "",
+    bio: "Passionate designer creating beautiful and functional digital experiences.",
+    location: "",
+    website: "",
+    joinDate: user?.joinDate
+      ? new Date(user.joinDate).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })
+      : "",
+    avatar: user?.avatar || "",
   });
 
+  // Update local state when user data changes
+  useEffect(() => {
+    if (user) {
+      setUserData((prev) => ({
+        ...prev,
+        name: user.name,
+        email: user.email,
+        joinDate: new Date(user.joinDate).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        avatar: user.avatar || "",
+      }));
+    }
+  }, [user]);
+
   const stats = {
-    products: 24,
-    followers: 1248,
-    following: 156,
-    likes: 5420,
+    products: 0, // Will be updated when we implement products API
+    followers: user?.followerCount || 0,
+    following: user?.followingCount || 0,
+    likes: 0, // Will be updated when we implement likes API
+    totalSales: user?.totalSales || 0,
+    rating: user?.rating || 0,
   };
 
   const products = Array.from({ length: 8 }, (_, i) => ({
@@ -65,14 +95,49 @@ const Profile = () => {
     id: i + 1,
     name: `Designer ${i + 1}`,
     avatar: `/api/placeholder/40/40`,
-    specialty: ["UI/UX", "Branding", "Illustration", "Photography"][Math.floor(Math.random() * 4)],
+    specialty: ["UI/UX", "Branding", "Illustration", "Photography"][
+      Math.floor(Math.random() * 4)
+    ],
     isFollowing: Math.random() > 0.5,
   }));
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    // Save profile data
-    console.log("Saving profile:", userData);
+  const handleSaveProfile = async () => {
+    setIsLoading(true);
+    try {
+      const success = await updateUser({
+        name: userData.name,
+        email: userData.email,
+      });
+
+      if (success) {
+        setIsEditing(false);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Logout Failed",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStartChat = (userId: number) => {
@@ -82,7 +147,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-8">
         <div className="container mx-auto px-4 py-8">
           {/* Profile Header */}
@@ -106,7 +171,9 @@ const Profile = () => {
                 <div className="relative">
                   <Avatar className="h-32 w-32 border-4 border-background">
                     <AvatarImage src={userData.avatar} />
-                    <AvatarFallback className="text-2xl">{userData.name[0]}</AvatarFallback>
+                    <AvatarFallback className="text-2xl">
+                      {userData.name[0]}
+                    </AvatarFallback>
                   </Avatar>
                   <Button
                     size="icon"
@@ -121,20 +188,35 @@ const Profile = () => {
                 <div className="flex-1 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <h1 className="text-2xl md:text-3xl font-bold">{userData.name}</h1>
+                      <h1 className="text-2xl md:text-3xl font-bold">
+                        {userData.name}
+                      </h1>
                       <p className="text-muted-foreground">{userData.bio}</p>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         onClick={() => setIsEditing(!isEditing)}
+                        disabled={authLoading}
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Profile
                       </Button>
-                      <Button>
+                      <Button variant="outline">
                         <Settings className="w-4 h-4 mr-2" />
                         Settings
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleLogout}
+                        disabled={authLoading}
+                      >
+                        {authLoading ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <LogOut className="w-4 h-4 mr-2" />
+                        )}
+                        Logout
                       </Button>
                     </div>
                   </div>
@@ -181,7 +263,11 @@ const Profile = () => {
 
           {/* Profile Content */}
           <div className="mt-8">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-6"
+            >
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="products">Products</TabsTrigger>
@@ -207,14 +293,19 @@ const Profile = () => {
                     <CardContent>
                       <div className="space-y-4">
                         {products.slice(0, 3).map((product) => (
-                          <div key={product.id} className="flex items-center space-x-3">
+                          <div
+                            key={product.id}
+                            className="flex items-center space-x-3"
+                          >
                             <img
                               src={product.image}
                               alt={product.title}
                               className="w-12 h-12 rounded-lg object-cover"
                             />
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate">{product.title}</h4>
+                              <h4 className="font-medium truncate">
+                                {product.title}
+                              </h4>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Heart className="w-3 h-3" />
                                 {product.likes}
@@ -222,7 +313,9 @@ const Profile = () => {
                                 {product.downloads}
                               </div>
                             </div>
-                            <span className="font-bold text-primary">{product.price}</span>
+                            <span className="font-bold text-primary">
+                              {product.price}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -238,18 +331,30 @@ const Profile = () => {
                       <div className="space-y-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-primary rounded-full" />
-                          <span className="text-sm">New follower: Sarah Chen</span>
-                          <span className="text-xs text-muted-foreground ml-auto">2h ago</span>
+                          <span className="text-sm">
+                            New follower: Sarah Chen
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            2h ago
+                          </span>
                         </div>
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-secondary rounded-full" />
-                          <span className="text-sm">Product liked: Logo Design Kit</span>
-                          <span className="text-xs text-muted-foreground ml-auto">4h ago</span>
+                          <span className="text-sm">
+                            Product liked: Logo Design Kit
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            4h ago
+                          </span>
                         </div>
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-accent rounded-full" />
-                          <span className="text-sm">New comment on UI Components</span>
-                          <span className="text-xs text-muted-foreground ml-auto">1d ago</span>
+                          <span className="text-sm">
+                            New comment on UI Components
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            1d ago
+                          </span>
                         </div>
                       </div>
                     </CardContent>
@@ -260,7 +365,9 @@ const Profile = () => {
               {/* Products Tab */}
               <TabsContent value="products" className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">My Products ({products.length})</h2>
+                  <h2 className="text-xl font-bold">
+                    My Products ({products.length})
+                  </h2>
                   <Link to="/add-product">
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
@@ -271,7 +378,10 @@ const Profile = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {products.map((product) => (
-                    <Card key={product.id} className="group cursor-pointer hover:shadow-lg transition-shadow">
+                    <Card
+                      key={product.id}
+                      className="group cursor-pointer hover:shadow-lg transition-shadow"
+                    >
                       <CardContent className="p-0">
                         <div className="relative overflow-hidden rounded-t-lg">
                           <img
@@ -280,13 +390,19 @@ const Profile = () => {
                             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute top-2 right-2 flex gap-1">
-                            <Button size="icon" variant="secondary" className="h-6 w-6">
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="h-6 w-6"
+                            >
                               <Edit className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
                         <div className="p-4 space-y-2">
-                          <h3 className="font-semibold truncate">{product.title}</h3>
+                          <h3 className="font-semibold truncate">
+                            {product.title}
+                          </h3>
                           <div className="flex items-center justify-between text-sm text-muted-foreground">
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-1">
@@ -298,7 +414,9 @@ const Profile = () => {
                                 {product.downloads}
                               </div>
                             </div>
-                            <span className="font-bold text-primary">{product.price}</span>
+                            <span className="font-bold text-primary">
+                              {product.price}
+                            </span>
                           </div>
                         </div>
                       </CardContent>
@@ -332,7 +450,7 @@ const Profile = () => {
                     {
                       id: 2,
                       title: "Social Media Template Bundle",
-                      designer: "Alex Rodriguez", 
+                      designer: "Alex Rodriguez",
                       price: "$45",
                       image: "/src/assets/hero-design-2.jpg",
                       category: "Templates",
@@ -350,7 +468,10 @@ const Profile = () => {
                       rating: 5.0,
                     },
                   ].map((item) => (
-                    <Card key={item.id} className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <Card
+                      key={item.id}
+                      className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
                       <CardContent className="p-0">
                         <div className="relative overflow-hidden">
                           <img
@@ -372,26 +493,42 @@ const Profile = () => {
                           </h3>
 
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground font-medium">{item.designer}</span>
+                            <span className="text-muted-foreground font-medium">
+                              {item.designer}
+                            </span>
                             <div className="flex items-center space-x-1">
                               <Star className="h-4 w-4 text-secondary fill-secondary" />
-                              <span className="font-semibold">{item.rating}</span>
+                              <span className="font-semibold">
+                                {item.rating}
+                              </span>
                             </div>
                           </div>
 
                           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            <span>Downloaded on {new Date(item.downloadDate).toLocaleDateString()}</span>
+                            <span>
+                              Downloaded on{" "}
+                              {new Date(item.downloadDate).toLocaleDateString()}
+                            </span>
                           </div>
 
                           <div className="flex items-center justify-between pt-2">
-                            <span className="text-xl font-bold text-primary">{item.price}</span>
+                            <span className="text-xl font-bold text-primary">
+                              {item.price}
+                            </span>
                             <div className="flex space-x-2">
-                              <Button size="sm" variant="outline" className="rounded-full">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full"
+                              >
                                 <Eye className="w-4 h-4 mr-1" />
                                 View
                               </Button>
-                              <Button size="sm" className="bg-primary hover:bg-primary/90 rounded-full">
+                              <Button
+                                size="sm"
+                                className="bg-primary hover:bg-primary/90 rounded-full"
+                              >
                                 <Download className="w-4 h-4 mr-1" />
                                 Download
                               </Button>
@@ -407,7 +544,9 @@ const Profile = () => {
               {/* Following Tab */}
               <TabsContent value="following" className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">Following ({followers.length})</h2>
+                  <h2 className="text-xl font-bold">
+                    Following ({followers.length})
+                  </h2>
                   <Button variant="outline">
                     <Users className="w-4 h-4 mr-2" />
                     Find More Designers
@@ -424,8 +563,12 @@ const Profile = () => {
                             <AvatarFallback>{follower.name[0]}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">{follower.name}</h3>
-                            <p className="text-sm text-muted-foreground">{follower.specialty}</p>
+                            <h3 className="font-medium truncate">
+                              {follower.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {follower.specialty}
+                            </p>
                           </div>
                           <div className="flex gap-1">
                             <Button
@@ -437,7 +580,9 @@ const Profile = () => {
                             </Button>
                             <Button
                               size="sm"
-                              variant={follower.isFollowing ? "outline" : "default"}
+                              variant={
+                                follower.isFollowing ? "outline" : "default"
+                              }
                             >
                               {follower.isFollowing ? "Following" : "Follow"}
                             </Button>
@@ -463,7 +608,12 @@ const Profile = () => {
                           <Input
                             id="name"
                             value={userData.name}
-                            onChange={(e) => setUserData(prev => ({ ...prev, name: e.target.value }))}
+                            onChange={(e) =>
+                              setUserData((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="space-y-2">
@@ -472,7 +622,12 @@ const Profile = () => {
                             id="email"
                             type="email"
                             value={userData.email}
-                            onChange={(e) => setUserData(prev => ({ ...prev, email: e.target.value }))}
+                            onChange={(e) =>
+                              setUserData((prev) => ({
+                                ...prev,
+                                email: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="space-y-2">
@@ -480,7 +635,12 @@ const Profile = () => {
                           <Textarea
                             id="bio"
                             value={userData.bio}
-                            onChange={(e) => setUserData(prev => ({ ...prev, bio: e.target.value }))}
+                            onChange={(e) =>
+                              setUserData((prev) => ({
+                                ...prev,
+                                bio: e.target.value,
+                              }))
+                            }
                             rows={3}
                           />
                         </div>
@@ -489,7 +649,12 @@ const Profile = () => {
                           <Input
                             id="location"
                             value={userData.location}
-                            onChange={(e) => setUserData(prev => ({ ...prev, location: e.target.value }))}
+                            onChange={(e) =>
+                              setUserData((prev) => ({
+                                ...prev,
+                                location: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="space-y-2">
@@ -497,12 +662,22 @@ const Profile = () => {
                           <Input
                             id="website"
                             value={userData.website}
-                            onChange={(e) => setUserData(prev => ({ ...prev, website: e.target.value }))}
+                            onChange={(e) =>
+                              setUserData((prev) => ({
+                                ...prev,
+                                website: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button onClick={handleSaveProfile}>Save Changes</Button>
-                          <Button variant="outline" onClick={() => setIsEditing(false)}>
+                          <Button onClick={handleSaveProfile}>
+                            Save Changes
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsEditing(false)}
+                          >
                             Cancel
                           </Button>
                         </div>

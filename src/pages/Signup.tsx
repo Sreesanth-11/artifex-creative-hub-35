@@ -4,8 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  Loader2,
+} from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,19 +27,52 @@ const Signup = () => {
     confirmPassword: "",
   });
   const navigate = useNavigate();
+  const location = useLocation();
+  const { register, isLoading } = useAuth();
+  const { toast } = useToast();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - in real app, this would connect to Supabase
-    console.log("Signup attempt:", formData);
-    // Navigate to home page after "signup"
-    navigate("/");
+
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await register(
+      formData.name,
+      formData.email,
+      formData.password
+    );
+    if (success) {
+      // Redirect to the page they were trying to access, or home
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -37,11 +80,7 @@ const Signup = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Button>
@@ -49,9 +88,9 @@ const Signup = () => {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center space-x-2">
-            <img 
-              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png" 
-              alt="Artifex Logo" 
+            <img
+              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png"
+              alt="Artifex Logo"
               className="h-8 w-auto"
             />
             <span className="text-2xl font-bold">Artifex</span>
@@ -178,9 +217,23 @@ const Signup = () => {
 
               <Button
                 type="submit"
+                disabled={
+                  isLoading ||
+                  !formData.name ||
+                  !formData.email ||
+                  !formData.password ||
+                  !formData.confirmPassword
+                }
                 className="w-full bg-gradient-primary hover:opacity-90 text-white h-12"
               >
-                Create Account
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
 

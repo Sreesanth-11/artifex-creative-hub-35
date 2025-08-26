@@ -2,11 +2,24 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Menu, X, Upload } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Menu, X, Upload, User, Settings, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
@@ -14,14 +27,11 @@ const Header = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <img 
-              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png" 
-              alt="Artifex Logo" 
+            <img
+              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png"
+              alt="Artifex Logo"
               className="h-9 w-auto"
             />
-            <span className="text-2xl font-bold text-foreground">
-              Artifex
-            </span>
           </Link>
 
           {/* Search Bar - Desktop */}
@@ -37,33 +47,104 @@ const Header = () => {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-10">
-            <Link to="/shop" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+            <Link
+              to="/shop"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
               Shop
             </Link>
-            <Link to="/chat" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+            <Link
+              to="/chat"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
               Chat
             </Link>
-            <Link to="/community" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+            <Link
+              to="/community"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
               Community
             </Link>
-            <Link to="/downloads" className="text-muted-foreground hover:text-foreground transition-colors font-medium">
+            <Link
+              to="/downloads"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
               Downloads
             </Link>
           </nav>
 
           {/* Actions */}
           <div className="flex items-center space-x-4">
-            {/* Mock logged in state - replace with real auth */}
-            <Link to="/profile">
-              <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary/20">
-                <AvatarImage src="/api/placeholder/40/40" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-            </Link>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 h-12 rounded-full">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary/20">
+                      <AvatarImage
+                        src={user?.avatar || "/api/placeholder/40/40"}
+                      />
+                      <AvatarFallback>
+                        {user?.name?.charAt(0).toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/downloads" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Downloads
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-red-600"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  asChild
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 h-12 rounded-full"
+                >
+                  <Link to="/add-product">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="px-6 h-12 rounded-full"
+                >
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 h-12 rounded-full"
+                >
+                  <Link to="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -72,7 +153,11 @@ const Header = () => {
               className="md:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -120,7 +205,10 @@ const Header = () => {
 
               {/* Mobile Auth */}
               <div className="space-y-3 pt-4 border-t border-border">
-                <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-muted-foreground"
+                >
                   Sign In
                 </Button>
                 <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 rounded-full">

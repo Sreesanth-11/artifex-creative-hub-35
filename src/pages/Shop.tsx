@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -25,13 +31,23 @@ import {
   Star,
   Eye,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { productAPI, Product } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Shop = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { toast } = useToast();
 
   const categories = [
     { id: "all", name: "All Categories", count: "100k+" },
@@ -41,23 +57,50 @@ const Shop = () => {
     { id: "illustrations", name: "Illustrations", count: "7.3k" },
     { id: "fonts", name: "Fonts", count: "5.4k" },
     { id: "ui-kits", name: "UI Kits", count: "3.7k" },
-    { id: "photos", name: "Photos", count: "9.1k" },
   ];
 
-  const designs = Array.from({ length: 24 }, (_, i) => ({
-    id: i + 1,
-    title: `Creative Design ${i + 1}`,
-    designer: "Designer Name",
-    designerAvatar: "/api/placeholder/40/40",
-    price: "$" + (Math.floor(Math.random() * 50) + 10),
-    rating: 4.5 + Math.random() * 0.5,
-    downloads: Math.floor(Math.random() * 5000) + 100,
-    views: Math.floor(Math.random() * 10000) + 500,
-    image: `/api/placeholder/300/200`,
-    category: categories[Math.floor(Math.random() * (categories.length - 1)) + 1].name,
-    isNew: Math.random() > 0.8,
-    isHot: Math.random() > 0.9,
-  }));
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const params: any = {
+          page: currentPage,
+          limit: 12,
+        };
+
+        if (selectedCategory !== "all") {
+          params.category = selectedCategory;
+        }
+
+        if (searchQuery) {
+          params.search = searchQuery;
+        }
+
+        if (sortBy === "price-low") params.sort = "price-low";
+        else if (sortBy === "price-high") params.sort = "price-high";
+        else if (sortBy === "popular") params.sort = "popular";
+        else if (sortBy === "rating") params.sort = "rating";
+
+        const response = await productAPI.getProducts(params);
+
+        if (response.success) {
+          setProducts(response.data.products);
+          setTotalPages(response.data.pagination.pages);
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load products. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [selectedCategory, searchQuery, sortBy, currentPage, toast]);
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -134,7 +177,10 @@ const Shop = () => {
               <input type="checkbox" className="rounded" />
               <div className="flex items-center space-x-1">
                 {Array.from({ length: rating }).map((_, i) => (
-                  <Star key={i} className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                  <Star
+                    key={i}
+                    className="w-3 h-3 text-yellow-400 fill-yellow-400"
+                  />
                 ))}
                 {Array.from({ length: 5 - rating }).map((_, i) => (
                   <Star key={i} className="w-3 h-3 text-gray-300" />
@@ -151,19 +197,23 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-8">
         {/* Search Header */}
         <div className="bg-muted/30 py-12">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center space-y-6">
               <h1 className="text-3xl md:text-4xl font-bold">
-                Shop <span className="bg-gradient-primary bg-clip-text text-transparent">Creative Assets</span>
+                Shop{" "}
+                <span className="bg-gradient-primary bg-clip-text text-transparent">
+                  Creative Assets
+                </span>
               </h1>
               <p className="text-lg text-muted-foreground">
-                Discover thousands of high-quality designs from talented creators worldwide
+                Discover thousands of high-quality designs from talented
+                creators worldwide
               </p>
-              
+
               <div className="relative max-w-2xl mx-auto">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -191,10 +241,13 @@ const Shop = () => {
                     Showing 1-24 of 1,250 results
                   </span>
                 </div>
-                
+
                 <div className="flex items-center space-x-4 w-full sm:w-auto">
                   {/* Mobile Filter Button */}
-                  <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
+                  <Sheet
+                    open={showMobileFilters}
+                    onOpenChange={setShowMobileFilters}
+                  >
                     <SheetTrigger asChild>
                       <Button variant="outline" className="lg:hidden">
                         <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -219,8 +272,12 @@ const Shop = () => {
                       <SelectItem value="newest">Newest</SelectItem>
                       <SelectItem value="popular">Most Popular</SelectItem>
                       <SelectItem value="rating">Highest Rated</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                      <SelectItem value="price-low">
+                        Price: Low to High
+                      </SelectItem>
+                      <SelectItem value="price-high">
+                        Price: High to Low
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -246,11 +303,13 @@ const Shop = () => {
               </div>
 
               {/* Design Grid */}
-              <div className={`grid gap-6 ${
-                viewMode === "grid" 
-                  ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" 
-                  : "grid-cols-1"
-              }`}>
+              <div
+                className={`grid gap-6 ${
+                  viewMode === "grid"
+                    ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                    : "grid-cols-1"
+                }`}
+              >
                 {designs.map((design) => (
                   <Link key={design.id} to={`/product/${design.id}`}>
                     <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
@@ -264,23 +323,35 @@ const Shop = () => {
                                 className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
-                              
+
                               {/* Badges */}
                               <div className="absolute top-3 left-3 flex gap-2">
                                 {design.isNew && (
-                                  <Badge className="bg-accent text-accent-foreground">New</Badge>
+                                  <Badge className="bg-accent text-accent-foreground">
+                                    New
+                                  </Badge>
                                 )}
                                 {design.isHot && (
-                                  <Badge className="bg-secondary text-secondary-foreground">🔥 Hot</Badge>
+                                  <Badge className="bg-secondary text-secondary-foreground">
+                                    🔥 Hot
+                                  </Badge>
                                 )}
                               </div>
 
                               {/* Action Buttons */}
                               <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <Button size="icon" variant="secondary" className="h-8 w-8">
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  className="h-8 w-8"
+                                >
                                   <Heart className="h-4 w-4" />
                                 </Button>
-                                <Button size="icon" variant="secondary" className="h-8 w-8">
+                                <Button
+                                  size="icon"
+                                  variant="secondary"
+                                  className="h-8 w-8"
+                                >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -295,13 +366,19 @@ const Shop = () => {
                                 <div className="flex items-center space-x-2">
                                   <Avatar className="h-6 w-6">
                                     <AvatarImage src={design.designerAvatar} />
-                                    <AvatarFallback>{design.designer[0]}</AvatarFallback>
+                                    <AvatarFallback>
+                                      {design.designer[0]}
+                                    </AvatarFallback>
                                   </Avatar>
-                                  <span className="text-sm text-muted-foreground">{design.designer}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {design.designer}
+                                  </span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                   <Star className="h-4 w-4 text-secondary fill-secondary" />
-                                  <span className="text-sm font-medium">{design.rating.toFixed(1)}</span>
+                                  <span className="text-sm font-medium">
+                                    {design.rating.toFixed(1)}
+                                  </span>
                                 </div>
                               </div>
 
@@ -316,7 +393,9 @@ const Shop = () => {
                                     <span>{design.views}</span>
                                   </div>
                                 </div>
-                                <span className="text-lg font-bold text-primary">{design.price}</span>
+                                <span className="text-lg font-bold text-primary">
+                                  {design.price}
+                                </span>
                               </div>
                             </div>
                           </>
@@ -339,17 +418,25 @@ const Shop = () => {
                                 <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
                                   {design.title}
                                 </h3>
-                                <span className="text-lg font-bold text-primary">{design.price}</span>
+                                <span className="text-lg font-bold text-primary">
+                                  {design.price}
+                                </span>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <Avatar className="h-5 w-5">
                                   <AvatarImage src={design.designerAvatar} />
-                                  <AvatarFallback>{design.designer[0]}</AvatarFallback>
+                                  <AvatarFallback>
+                                    {design.designer[0]}
+                                  </AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm text-muted-foreground">{design.designer}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {design.designer}
+                                </span>
                                 <div className="flex items-center space-x-1">
                                   <Star className="h-3 w-3 text-secondary fill-secondary" />
-                                  <span className="text-sm">{design.rating.toFixed(1)}</span>
+                                  <span className="text-sm">
+                                    {design.rating.toFixed(1)}
+                                  </span>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -361,7 +448,9 @@ const Shop = () => {
                                   <Eye className="h-3 w-3" />
                                   <span>{design.views} views</span>
                                 </div>
-                                <Badge variant="secondary">{design.category}</Badge>
+                                <Badge variant="secondary">
+                                  {design.category}
+                                </Badge>
                               </div>
                             </div>
                           </div>
@@ -375,13 +464,29 @@ const Shop = () => {
               {/* Pagination */}
               <div className="flex justify-center mt-12">
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">Previous</Button>
-                  <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">1</Button>
-                  <Button variant="outline" size="sm">2</Button>
-                  <Button variant="outline" size="sm">3</Button>
+                  <Button variant="outline" size="sm">
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-primary text-primary-foreground"
+                  >
+                    1
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    2
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    3
+                  </Button>
                   <span className="text-muted-foreground">...</span>
-                  <Button variant="outline" size="sm">12</Button>
-                  <Button variant="outline" size="sm">Next</Button>
+                  <Button variant="outline" size="sm">
+                    12
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Next
+                  </Button>
                 </div>
               </div>
             </div>

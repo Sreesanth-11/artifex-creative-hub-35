@@ -25,10 +25,15 @@ import {
   Image as ImageIcon,
   FileText,
   Package,
+  Loader2,
 } from "lucide-react";
+import { productAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const AddProduct = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -36,39 +41,38 @@ const AddProduct = () => {
     price: "",
     tags: [] as string[],
     files: [] as File[],
+    images: [] as File[],
   });
   const [newTag, setNewTag] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
   const categories = [
-    "UI Kits",
-    "Icons",
-    "Illustrations",
-    "Templates",
-    "Logos",
-    "Photos",
-    "Fonts",
-    "Graphics",
+    { value: "ui-kits", label: "UI Kits" },
+    { value: "icons", label: "Icons" },
+    { value: "illustrations", label: "Illustrations" },
+    { value: "templates", label: "Templates" },
+    { value: "logos", label: "Logos" },
+    { value: "fonts", label: "Fonts" },
   ];
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const addTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        tags: [...prev.tags, newTag.trim()]
+        tags: [...prev.tags, newTag.trim()],
       }));
       setNewTag("");
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
     }));
   };
 
@@ -86,12 +90,12 @@ const AddProduct = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const files = Array.from(e.dataTransfer.files);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        files: [...prev.files, ...files]
+        files: [...prev.files, ...files],
       }));
     }
   };
@@ -99,44 +103,119 @@ const AddProduct = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        files: [...prev.files, ...files]
+        files: [...prev.files, ...files],
       }));
     }
   };
 
   const removeFile = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      files: prev.files.filter((_, i) => i !== index)
+      files: prev.files.filter((_, i) => i !== index),
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Product data:", formData);
-    // Here you would upload the product
-    navigate("/profile");
+
+    if (
+      !formData.title ||
+      !formData.description ||
+      !formData.category ||
+      !formData.price
+    ) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.files.length === 0) {
+      toast({
+        title: "No Files",
+        description: "Please upload at least one file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.images.length === 0) {
+      toast({
+        title: "No Images",
+        description: "Please upload at least one preview image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // In a real app, you would upload files to cloud storage first
+      // For now, we'll use placeholder URLs
+      const imageUrls = formData.images.map(
+        (_, index) => `https://placeholder.com/600x400?text=Image${index + 1}`
+      );
+
+      const fileData = formData.files.map((file, index) => ({
+        url: `https://placeholder.com/file${index + 1}`,
+        filename: file.name,
+        size: file.size,
+        format: file.name.split(".").pop() || "unknown",
+      }));
+
+      const productData = {
+        title: formData.title,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        tags: formData.tags,
+        images: imageUrls,
+        files: fileData,
+      };
+
+      const response = await productAPI.createProduct(productData);
+
+      if (response.success) {
+        toast({
+          title: "Product Created!",
+          description: "Your product has been successfully uploaded.",
+        });
+        navigate("/profile");
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error || "Failed to create product";
+      toast({
+        title: "Upload Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-8">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/profile")}
-            >
+            <Button variant="ghost" onClick={() => navigate("/profile")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Profile
             </Button>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Add New Product</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">
+                Add New Product
+              </h1>
               <p className="text-muted-foreground">
                 Share your creative work with the community
               </p>
@@ -162,7 +241,9 @@ const AddProduct = () => {
                         id="title"
                         placeholder="Enter your product title"
                         value={formData.title}
-                        onChange={(e) => handleInputChange("title", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("title", e.target.value)
+                        }
                         required
                       />
                     </div>
@@ -173,7 +254,9 @@ const AddProduct = () => {
                         id="description"
                         placeholder="Describe your product, its features, and what makes it unique..."
                         value={formData.description}
-                        onChange={(e) => handleInputChange("description", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("description", e.target.value)
+                        }
                         rows={4}
                         required
                       />
@@ -182,14 +265,22 @@ const AddProduct = () => {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="category">Category *</Label>
-                        <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
+                        <Select
+                          value={formData.category}
+                          onValueChange={(value) =>
+                            handleInputChange("category", value)
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
                             {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
+                              <SelectItem
+                                key={category.value}
+                                value={category.value}
+                              >
+                                {category.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -205,7 +296,9 @@ const AddProduct = () => {
                             type="number"
                             placeholder="0.00"
                             value={formData.price}
-                            onChange={(e) => handleInputChange("price", e.target.value)}
+                            onChange={(e) =>
+                              handleInputChange("price", e.target.value)
+                            }
                             className="pl-10"
                             min="0"
                             step="0.01"
@@ -225,7 +318,10 @@ const AddProduct = () => {
                             placeholder="Add tags (e.g., modern, minimal, clean)"
                             value={newTag}
                             onChange={(e) => setNewTag(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                            onKeyPress={(e) =>
+                              e.key === "Enter" &&
+                              (e.preventDefault(), addTag())
+                            }
                             className="pl-10"
                           />
                         </div>
@@ -235,7 +331,11 @@ const AddProduct = () => {
                       </div>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {formData.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
                             {tag}
                             <Button
                               type="button"
@@ -264,7 +364,9 @@ const AddProduct = () => {
                   <CardContent>
                     <div
                       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        dragActive ? 'border-primary bg-primary/5' : 'border-border'
+                        dragActive
+                          ? "border-primary bg-primary/5"
+                          : "border-border"
                       }`}
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
@@ -272,7 +374,9 @@ const AddProduct = () => {
                       onDrop={handleDrop}
                     >
                       <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Upload your files</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        Upload your files
+                      </h3>
                       <p className="text-muted-foreground mb-4">
                         Drag and drop your files here, or click to browse
                       </p>
@@ -299,7 +403,10 @@ const AddProduct = () => {
                       <div className="mt-4 space-y-2">
                         <h4 className="font-medium">Uploaded Files:</h4>
                         {formData.files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                          >
                             <div className="flex items-center gap-2">
                               <FileText className="w-4 h-4" />
                               <span className="text-sm">{file.name}</span>
@@ -338,7 +445,8 @@ const AddProduct = () => {
                       {formData.title || "Product Title"}
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      {formData.description || "Product description will appear here..."}
+                      {formData.description ||
+                        "Product description will appear here..."}
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="secondary">
@@ -360,14 +468,20 @@ const AddProduct = () => {
                     <div className="space-y-2">
                       <label className="flex items-center space-x-2">
                         <input type="checkbox" className="rounded" />
-                        <span className="text-sm">Make this product featured</span>
+                        <span className="text-sm">
+                          Make this product featured
+                        </span>
                       </label>
                       <label className="flex items-center space-x-2">
                         <input type="checkbox" className="rounded" />
                         <span className="text-sm">Allow commercial use</span>
                       </label>
                       <label className="flex items-center space-x-2">
-                        <input type="checkbox" className="rounded" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          defaultChecked
+                        />
                         <span className="text-sm">Publish immediately</span>
                       </label>
                     </div>
@@ -375,10 +489,25 @@ const AddProduct = () => {
                     <Separator />
 
                     <div className="space-y-3">
-                      <Button type="submit" className="w-full">
-                        Publish Product
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Publishing...
+                          </>
+                        ) : (
+                          "Publish Product"
+                        )}
                       </Button>
-                      <Button type="button" variant="outline" className="w-full">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                      >
                         Save as Draft
                       </Button>
                     </div>

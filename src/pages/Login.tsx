@@ -4,32 +4,38 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, Loader2 } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isLoading } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in real app, this would connect to Supabase
-    console.log("Login attempt:", { email, password });
-    // Navigate to home page after "login"
-    navigate("/");
+
+    if (!email || !password) {
+      return;
+    }
+
+    const success = await login(email, password);
+    if (success) {
+      // Redirect to the page they were trying to access, or home
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Button>
@@ -37,9 +43,9 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center space-x-2">
-            <img 
-              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png" 
-              alt="Artifex Logo" 
+            <img
+              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png"
+              alt="Artifex Logo"
               className="h-8 w-auto"
             />
             <span className="text-2xl font-bold">Artifex</span>
@@ -104,7 +110,9 @@ const Login = () => {
               <div className="flex items-center justify-between">
                 <label className="flex items-center space-x-2">
                   <input type="checkbox" className="rounded" />
-                  <span className="text-sm text-muted-foreground">Remember me</span>
+                  <span className="text-sm text-muted-foreground">
+                    Remember me
+                  </span>
                 </label>
                 <Link
                   to="/forgot-password"
@@ -116,9 +124,17 @@ const Login = () => {
 
               <Button
                 type="submit"
+                disabled={isLoading || !email || !password}
                 className="w-full bg-gradient-primary hover:opacity-90 text-white h-12"
               >
-                Sign In
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
 

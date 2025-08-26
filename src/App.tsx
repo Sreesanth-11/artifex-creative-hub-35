@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import Community from "./pages/Community";
@@ -37,45 +39,103 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/shop/:category" element={<Shop />} />
-          <Route path="/product/:productId" element={<ProductDetail />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/chat/:userId?" element={<Chat />} />
-          <Route path="/add-product" element={<AddProduct />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/downloads" element={<Downloads />} />
-          <Route path="/profile/:userId" element={<PublicProfile />} />
-          <Route path="/browse/logos" element={<Logos />} />
-          <Route path="/browse/icons" element={<Icons />} />
-          <Route path="/browse/templates" element={<Templates />} />
-          <Route path="/browse/fonts" element={<Fonts />} />
-          <Route path="/browse/illustrations" element={<Illustrations />} />
-          <Route path="/browse/ui-kits" element={<UIKits />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/cookies" element={<CookiePolicy />} />
-          <Route path="/dmca" element={<DMCA />} />
-          <Route path="/help" element={<HelpCenter />} />
-          <Route path="/seller-guide" element={<SellerGuide />} />
-          <Route path="/buyer-guide" element={<BuyerGuide />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/api-docs" element={<APIDocs />} />
-          <Route path="/sell" element={<Index />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/shop/:category" element={<Shop />} />
+            <Route path="/product/:productId" element={<ProductDetail />} />
+            <Route path="/community" element={<Community />} />
+            <Route
+              path="/login"
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Login />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Signup />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chat/:userId?"
+              element={
+                <ProtectedRoute>
+                  <Chat />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add-product"
+              element={
+                <ProtectedRoute>
+                  <AddProduct />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment"
+              element={
+                <ProtectedRoute>
+                  <Payment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-success"
+              element={
+                <ProtectedRoute>
+                  <PaymentSuccess />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/downloads"
+              element={
+                <ProtectedRoute>
+                  <Downloads />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/profile/:userId" element={<PublicProfile />} />
+            <Route path="/browse/logos" element={<Logos />} />
+            <Route path="/browse/icons" element={<Icons />} />
+            <Route path="/browse/templates" element={<Templates />} />
+            <Route path="/browse/fonts" element={<Fonts />} />
+            <Route path="/browse/illustrations" element={<Illustrations />} />
+            <Route path="/browse/ui-kits" element={<UIKits />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/cookies" element={<CookiePolicy />} />
+            <Route path="/dmca" element={<DMCA />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/seller-guide" element={<SellerGuide />} />
+            <Route path="/buyer-guide" element={<BuyerGuide />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/api-docs" element={<APIDocs />} />
+            <Route path="/sell" element={<Index />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
