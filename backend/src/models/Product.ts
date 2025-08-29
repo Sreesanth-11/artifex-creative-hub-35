@@ -14,10 +14,24 @@ const ProductSchema = new Schema<IProduct>(
       required: [true, "Product description is required"],
       maxlength: [2000, "Description cannot be more than 2000 characters"],
     },
+    longDescription: {
+      type: String,
+      maxlength: [5000, "Long description cannot be more than 5000 characters"],
+    },
     price: {
       type: Number,
       required: [true, "Price is required"],
       min: [0, "Price cannot be negative"],
+    },
+    originalPrice: {
+      type: Number,
+      min: [0, "Original price cannot be negative"],
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: [0, "Discount cannot be negative"],
+      max: [100, "Discount cannot be more than 100%"],
     },
     category: {
       type: String,
@@ -50,26 +64,34 @@ const ProductSchema = new Schema<IProduct>(
     ],
     files: [
       {
+        name: {
+          type: String,
+          required: false, // Made optional for backward compatibility
+        },
+        filename: {
+          type: String,
+          required: false, // Legacy field
+        },
         url: {
           type: String,
           required: true,
         },
-        filename: {
-          type: String,
-          required: true,
-        },
         size: {
-          type: Number,
-          required: true,
+          type: String,
+          required: false, // Made optional
+        },
+        type: {
+          type: String,
+          required: false, // Made optional for backward compatibility
         },
         format: {
           type: String,
-          required: true,
+          required: false, // Legacy field
         },
       },
     ],
     seller: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
@@ -95,7 +117,7 @@ const ProductSchema = new Schema<IProduct>(
     },
     likes: [
       {
-        type: String,
+        type: Schema.Types.ObjectId,
         ref: "User",
       },
     ],
@@ -109,6 +131,18 @@ const ProductSchema = new Schema<IProduct>(
       type: Number,
       default: 0,
     },
+    license: {
+      type: String,
+      default: "Standard License",
+    },
+    publishDate: {
+      type: Date,
+      default: Date.now,
+    },
+    lastUpdate: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true,
@@ -119,7 +153,7 @@ const ProductSchema = new Schema<IProduct>(
 
 // Virtual for like count
 ProductSchema.virtual("likeCount").get(function (this: IProduct) {
-  return this.likes.length;
+  return this.likes?.length || 0;
 });
 
 // Virtual for average rating calculation

@@ -3,7 +3,14 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, DollarSign, Users, TrendingUp, Shield, Award } from "lucide-react";
+import {
+  Upload,
+  DollarSign,
+  Users,
+  TrendingUp,
+  Shield,
+  Award,
+} from "lucide-react";
 
 const SellerGuide = () => {
   useEffect(() => {
@@ -14,22 +21,26 @@ const SellerGuide = () => {
     {
       icon: Upload,
       title: "Upload Your Designs",
-      description: "Share your creative work with our global community. Upload high-quality designs with detailed descriptions.",
+      description:
+        "Share your creative work with our global community. Upload high-quality designs with detailed descriptions.",
     },
     {
       icon: DollarSign,
       title: "Set Your Prices",
-      description: "You have full control over pricing. Set competitive prices based on your work's value and market demand.",
+      description:
+        "You have full control over pricing. Set competitive prices based on your work's value and market demand.",
     },
     {
       icon: Users,
       title: "Build Your Audience",
-      description: "Engage with customers, respond to feedback, and build a loyal following for your design style.",
+      description:
+        "Engage with customers, respond to feedback, and build a loyal following for your design style.",
     },
     {
       icon: TrendingUp,
       title: "Grow Your Business",
-      description: "Use our analytics tools to track performance and optimize your listings for better sales.",
+      description:
+        "Use our analytics tools to track performance and optimize your listings for better sales.",
     },
   ];
 
@@ -37,33 +48,40 @@ const SellerGuide = () => {
     {
       icon: Shield,
       title: "Protected Transactions",
-      description: "All payments are secure and protected. We handle the payment processing so you can focus on creating.",
+      description:
+        "All payments are secure and protected. We handle the payment processing so you can focus on creating.",
     },
     {
       icon: Award,
       title: "Global Marketplace",
-      description: "Reach customers worldwide with our international platform and multi-currency support.",
+      description:
+        "Reach customers worldwide with our international platform and multi-currency support.",
     },
     {
       icon: TrendingUp,
       title: "Marketing Support",
-      description: "Get featured in our newsletters, social media, and promotional campaigns to boost visibility.",
+      description:
+        "Get featured in our newsletters, social media, and promotional campaigns to boost visibility.",
     },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-12">
         {/* Hero */}
         <div className="text-center space-y-6 mb-16">
           <h1 className="text-4xl font-bold">
-            Start Selling Your <span className="bg-gradient-primary bg-clip-text text-transparent">Designs Today</span>
+            Start Selling Your{" "}
+            <span className="bg-gradient-primary bg-clip-text text-transparent">
+              Designs Today
+            </span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Join thousands of creative professionals who are earning money from their passion. 
-            Learn how to succeed as a seller on Artifex and turn your creativity into a thriving business.
+            Join thousands of creative professionals who are earning money from
+            their passion. Learn how to succeed as a seller on Artifex and turn
+            your creativity into a thriving business.
           </p>
           <Button size="lg" className="bg-gradient-primary">
             Start Selling Now
@@ -72,7 +90,9 @@ const SellerGuide = () => {
 
         {/* Getting Started */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">How to Get Started</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            How to Get Started
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {steps.map((step, index) => (
               <Card key={index} className="text-center">
@@ -82,7 +102,9 @@ const SellerGuide = () => {
                   </div>
                   <div className="space-y-2">
                     <h3 className="font-semibold text-lg">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {step.description}
+                    </p>
                   </div>
                   <div className="text-2xl font-bold text-primary/30">
                     {index + 1}
@@ -95,7 +117,9 @@ const SellerGuide = () => {
 
         {/* Benefits */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Why Sell on Artifex?</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            Why Sell on Artifex?
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {benefits.map((benefit, index) => (
               <Card key={index}>
@@ -104,8 +128,12 @@ const SellerGuide = () => {
                     <benefit.icon className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">{benefit.title}</h3>
-                    <p className="text-muted-foreground">{benefit.description}</p>
+                    <h3 className="font-semibold text-lg mb-2">
+                      {benefit.title}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {benefit.description}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -115,7 +143,9 @@ const SellerGuide = () => {
 
         {/* Best Practices */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Best Practices for Success</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            Best Practices for Success
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <h3 className="text-xl font-semibold">Quality Guidelines</h3>
@@ -168,18 +198,24 @@ const SellerGuide = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-3">
               <h3 className="font-semibold text-primary">Basic Designs</h3>
-              <p className="text-2xl font-bold">$5 - $25</p>
-              <p className="text-sm text-muted-foreground">Simple logos, icons, and basic graphics</p>
+              <p className="text-2xl font-bold">₹50 - ₹250</p>
+              <p className="text-sm text-muted-foreground">
+                Simple logos, icons, and basic graphics
+              </p>
             </div>
             <div className="space-y-3">
               <h3 className="font-semibold text-primary">Premium Designs</h3>
-              <p className="text-2xl font-bold">$25 - $75</p>
-              <p className="text-sm text-muted-foreground">Complex illustrations, UI kits, and templates</p>
+              <p className="text-2xl font-bold">₹250 - ₹750</p>
+              <p className="text-sm text-muted-foreground">
+                Complex illustrations, UI kits, and templates
+              </p>
             </div>
             <div className="space-y-3">
               <h3 className="font-semibold text-primary">Exclusive Work</h3>
-              <p className="text-2xl font-bold">$75+</p>
-              <p className="text-sm text-muted-foreground">Custom designs and premium collections</p>
+              <p className="text-2xl font-bold">₹750+</p>
+              <p className="text-sm text-muted-foreground">
+                Custom designs and premium collections
+              </p>
             </div>
           </div>
         </div>
@@ -188,7 +224,8 @@ const SellerGuide = () => {
         <div className="text-center space-y-6">
           <h2 className="text-3xl font-bold">Ready to Start Your Journey?</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Join our community of successful designers and start monetizing your creativity today.
+            Join our community of successful designers and start monetizing your
+            creativity today.
           </p>
           <div className="flex justify-center space-x-4">
             <Button size="lg" className="bg-gradient-primary">

@@ -4,12 +4,12 @@ import { IMessage } from "../types";
 const MessageSchema = new Schema<IMessage>(
   {
     sender: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     receiver: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
@@ -27,6 +27,9 @@ const MessageSchema = new Schema<IMessage>(
     isRead: {
       type: Boolean,
       default: false,
+    },
+    readAt: {
+      type: Date,
     },
     conversationId: {
       type: String,
@@ -73,8 +76,20 @@ MessageSchema.statics.markConversationAsRead = function (
       receiver: userId,
       isRead: false,
     },
-    { isRead: true }
+    {
+      isRead: true,
+      readAt: new Date(),
+    }
   );
 };
 
-export default mongoose.model<IMessage>("Message", MessageSchema);
+// Define the model interface with static methods
+interface IMessageModel extends mongoose.Model<IMessage> {
+  generateConversationId(userId1: string, userId2: string): string;
+  markConversationAsRead(conversationId: string, userId: string): Promise<any>;
+}
+
+export default mongoose.model<IMessage, IMessageModel>(
+  "Message",
+  MessageSchema
+);

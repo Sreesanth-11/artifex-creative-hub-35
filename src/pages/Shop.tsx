@@ -47,17 +47,34 @@ const Shop = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [categories, setCategories] = useState<
+    Array<{ name: string; count: number }>
+  >([]);
   const { toast } = useToast();
 
-  const categories = [
-    { id: "all", name: "All Categories", count: "100k+" },
-    { id: "logos", name: "Logos", count: "12.5k" },
-    { id: "icons", name: "Icons", count: "15.2k" },
-    { id: "templates", name: "Templates", count: "8.9k" },
-    { id: "illustrations", name: "Illustrations", count: "7.3k" },
-    { id: "fonts", name: "Fonts", count: "5.4k" },
-    { id: "ui-kits", name: "UI Kits", count: "3.7k" },
-  ];
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await productAPI.getCategories();
+        const allCategories = [
+          {
+            name: "all",
+            count: response.data.categories.reduce(
+              (sum, cat) => sum + cat.count,
+              0
+            ),
+          },
+          ...response.data.categories,
+        ];
+        setCategories(allCategories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Fetch products from API
   useEffect(() => {
@@ -112,15 +129,17 @@ const Shop = () => {
         <div className="space-y-2">
           {categories.map((category) => (
             <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
+              key={category.name}
+              onClick={() => setSelectedCategory(category.name)}
               className={`w-full text-left p-3 rounded-lg transition-colors flex items-center justify-between ${
-                selectedCategory === category.id
+                selectedCategory === category.name
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "hover:bg-muted/50"
               }`}
             >
-              <span>{category.name}</span>
+              <span className="capitalize">
+                {category.name === "all" ? "All Categories" : category.name}
+              </span>
               <Badge variant="secondary" className="text-xs">
                 {category.count}
               </Badge>
@@ -140,15 +159,15 @@ const Shop = () => {
           </label>
           <label className="flex items-center space-x-2">
             <input type="checkbox" className="rounded" />
-            <span className="text-sm">$1 - $10</span>
+            <span className="text-sm">₹10 - ₹100</span>
           </label>
           <label className="flex items-center space-x-2">
             <input type="checkbox" className="rounded" />
-            <span className="text-sm">$10 - $50</span>
+            <span className="text-sm">₹100 - ₹500</span>
           </label>
           <label className="flex items-center space-x-2">
             <input type="checkbox" className="rounded" />
-            <span className="text-sm">$50+</span>
+            <span className="text-sm">₹500+</span>
           </label>
         </div>
       </div>
@@ -310,155 +329,195 @@ const Shop = () => {
                     : "grid-cols-1"
                 }`}
               >
-                {designs.map((design) => (
-                  <Link key={design.id} to={`/product/${design.id}`}>
-                    <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <Card key={index} className="animate-pulse">
                       <CardContent className="p-0">
-                        {viewMode === "grid" ? (
-                          <>
-                            <div className="relative overflow-hidden rounded-t-lg">
-                              <img
-                                src={design.image}
-                                alt={design.title}
-                                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
+                        <div className="w-full h-48 bg-muted rounded-t-lg"></div>
+                        <div className="p-4 space-y-3">
+                          <div className="h-4 bg-muted rounded w-3/4"></div>
+                          <div className="h-3 bg-muted rounded w-1/2"></div>
+                          <div className="h-3 bg-muted rounded w-1/4"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : products.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-muted-foreground">
+                      No products found. Try adjusting your filters.
+                    </p>
+                  </div>
+                ) : (
+                  products.map((product) => (
+                    <Link key={product._id} to={`/product/${product._id}`}>
+                      <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
+                        <CardContent className="p-0">
+                          {viewMode === "grid" ? (
+                            <>
+                              <div className="relative overflow-hidden rounded-t-lg">
+                                <img
+                                  src={
+                                    product.images?.[0] ||
+                                    "https://picsum.photos/300/200?random=1"
+                                  }
+                                  alt={product.title}
+                                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
 
-                              {/* Badges */}
-                              <div className="absolute top-3 left-3 flex gap-2">
-                                {design.isNew && (
-                                  <Badge className="bg-accent text-accent-foreground">
-                                    New
-                                  </Badge>
-                                )}
-                                {design.isHot && (
-                                  <Badge className="bg-secondary text-secondary-foreground">
-                                    🔥 Hot
+                                {/* Badges */}
+                                <div className="absolute top-3 left-3 flex gap-2">
+                                  {product.isFeatured && (
+                                    <Badge className="bg-accent text-accent-foreground">
+                                      Featured
+                                    </Badge>
+                                  )}
+                                  {product.isExclusive && (
+                                    <Badge className="bg-secondary text-secondary-foreground">
+                                      🔥 Exclusive
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                  <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="h-8 w-8"
+                                  >
+                                    <Heart className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="secondary"
+                                    className="h-8 w-8"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="p-4 space-y-3">
+                                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                                  {product.title}
+                                </h3>
+
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarImage
+                                        src={
+                                          product.seller?.avatar ||
+                                          "https://picsum.photos/40/40?random=3"
+                                        }
+                                      />
+                                      <AvatarFallback>
+                                        {product.seller?.name?.[0] || "U"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm text-muted-foreground">
+                                      {product.seller?.name || "Unknown"}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-1">
+                                    <Star className="h-4 w-4 text-secondary fill-secondary" />
+                                    <span className="text-sm font-medium">
+                                      {product.rating?.toFixed(1) || "0.0"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center space-x-1">
+                                      <Download className="h-3 w-3" />
+                                      <span>{product.downloads || 0}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      <Eye className="h-3 w-3" />
+                                      <span>{product.views || 0}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-lg font-bold text-primary">
+                                    ₹{product.price}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex p-4 space-x-4">
+                              <div className="relative">
+                                <img
+                                  src={
+                                    product.images?.[0] ||
+                                    "https://picsum.photos/300/200?random=2"
+                                  }
+                                  alt={product.title}
+                                  className="w-24 h-24 object-cover rounded-lg"
+                                />
+                                {product.isFeatured && (
+                                  <Badge className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs">
+                                    Featured
                                   </Badge>
                                 )}
                               </div>
-
-                              {/* Action Buttons */}
-                              <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <Button
-                                  size="icon"
-                                  variant="secondary"
-                                  className="h-8 w-8"
-                                >
-                                  <Heart className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="secondary"
-                                  className="h-8 w-8"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="p-4 space-y-3">
-                              <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                                {design.title}
-                              </h3>
-
-                              <div className="flex items-center justify-between">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-start justify-between">
+                                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                                    {product.title}
+                                  </h3>
+                                  <span className="text-lg font-bold text-primary">
+                                    ₹{product.price}
+                                  </span>
+                                </div>
                                 <div className="flex items-center space-x-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarImage src={design.designerAvatar} />
+                                  <Avatar className="h-5 w-5">
+                                    <AvatarImage
+                                      src={
+                                        product.seller?.avatar ||
+                                        "https://picsum.photos/40/40?random=4"
+                                      }
+                                    />
                                     <AvatarFallback>
-                                      {design.designer[0]}
+                                      {product.seller?.name?.[0] || "U"}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span className="text-sm text-muted-foreground">
-                                    {design.designer}
+                                    {product.seller?.name || "Unknown"}
                                   </span>
+                                  <div className="flex items-center space-x-1">
+                                    <Star className="h-3 w-3 text-secondary fill-secondary" />
+                                    <span className="text-sm">
+                                      {product.rating?.toFixed(1) || "0.0"}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                  <Star className="h-4 w-4 text-secondary fill-secondary" />
-                                  <span className="text-sm font-medium">
-                                    {design.rating.toFixed(1)}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                   <div className="flex items-center space-x-1">
                                     <Download className="h-3 w-3" />
-                                    <span>{design.downloads}</span>
+                                    <span>
+                                      {product.downloads || 0} downloads
+                                    </span>
                                   </div>
                                   <div className="flex items-center space-x-1">
                                     <Eye className="h-3 w-3" />
-                                    <span>{design.views}</span>
+                                    <span>{product.views || 0} views</span>
                                   </div>
+                                  <Badge variant="secondary">
+                                    {product.category}
+                                  </Badge>
                                 </div>
-                                <span className="text-lg font-bold text-primary">
-                                  {design.price}
-                                </span>
                               </div>
                             </div>
-                          </>
-                        ) : (
-                          <div className="flex p-4 space-x-4">
-                            <div className="relative">
-                              <img
-                                src={design.image}
-                                alt={design.title}
-                                className="w-24 h-24 object-cover rounded-lg"
-                              />
-                              {design.isNew && (
-                                <Badge className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-xs">
-                                  New
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-start justify-between">
-                                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                                  {design.title}
-                                </h3>
-                                <span className="text-lg font-bold text-primary">
-                                  {design.price}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="h-5 w-5">
-                                  <AvatarImage src={design.designerAvatar} />
-                                  <AvatarFallback>
-                                    {design.designer[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm text-muted-foreground">
-                                  {design.designer}
-                                </span>
-                                <div className="flex items-center space-x-1">
-                                  <Star className="h-3 w-3 text-secondary fill-secondary" />
-                                  <span className="text-sm">
-                                    {design.rating.toFixed(1)}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center space-x-1">
-                                  <Download className="h-3 w-3" />
-                                  <span>{design.downloads} downloads</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Eye className="h-3 w-3" />
-                                  <span>{design.views} views</span>
-                                </div>
-                                <Badge variant="secondary">
-                                  {design.category}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))
+                )}
               </div>
 
               {/* Pagination */}

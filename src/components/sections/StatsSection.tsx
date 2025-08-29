@@ -23,7 +23,7 @@ const StatsSection = () => {
     {
       id: 4,
       icon: DollarSign,
-      value: "$2M+",
+      value: "₹20Cr+",
       label: "Paid to Creators",
     },
   ];

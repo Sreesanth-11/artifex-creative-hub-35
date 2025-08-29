@@ -9,13 +9,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Menu, X, Upload, User, Settings, LogOut } from "lucide-react";
+import {
+  Search,
+  Menu,
+  X,
+  Upload,
+  User,
+  Settings,
+  LogOut,
+  ShoppingCart,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const { cartCount } = useCart();
 
   const handleLogout = async () => {
     await logout();
@@ -28,7 +39,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
             <img
-              src="/lovable-uploads/fd5a8945-3ba2-469e-89fa-7b56789beee1.png"
+              src="src\assets\icon.png"
               alt="Artifex Logo"
               className="h-9 w-auto"
             />
@@ -53,17 +64,18 @@ const Header = () => {
             >
               Shop
             </Link>
-            <Link
-              to="/chat"
-              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
-            >
-              Chat
-            </Link>
+
             <Link
               to="/community"
               className="text-muted-foreground hover:text-foreground transition-colors font-medium"
             >
               Community
+            </Link>
+            <Link
+              to="/chat"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
+              Chat
             </Link>
             <Link
               to="/downloads"
@@ -77,6 +89,23 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <>
+                {/* Cart Icon */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  className="relative h-12 w-12 rounded-full"
+                >
+                  <Link to="/cart">
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {cartCount > 99 ? "99+" : cartCount}
+                      </span>
+                    )}
+                  </Link>
+                </Button>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary/20">
@@ -183,17 +212,18 @@ const Header = () => {
                 >
                   Shop
                 </Link>
-                <Link
-                  to="/chat"
-                  className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
-                >
-                  Chat
-                </Link>
+
                 <Link
                   to="/community"
                   className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
                 >
                   Community
+                </Link>
+                <Link
+                  to="/chat"
+                  className="block py-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
+                >
+                  Chat
                 </Link>
                 <Link
                   to="/downloads"

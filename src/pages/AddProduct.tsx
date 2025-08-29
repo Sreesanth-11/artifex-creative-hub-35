@@ -20,7 +20,7 @@ import {
   ArrowLeft,
   Upload,
   X,
-  DollarSign,
+  IndianRupee,
   Tag,
   Image as ImageIcon,
   FileText,
@@ -29,10 +29,13 @@ import {
 } from "lucide-react";
 import { productAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 const AddProduct = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -45,6 +48,19 @@ const AddProduct = () => {
   });
   const [newTag, setNewTag] = useState("");
   const [dragActive, setDragActive] = useState(false);
+
+  // Check authentication
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add products",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+  }, [user, navigate, toast]);
 
   const categories = [
     { value: "ui-kits", label: "UI Kits" },
@@ -117,6 +133,23 @@ const AddProduct = () => {
     }));
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...files],
+      }));
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -155,18 +188,25 @@ const AddProduct = () => {
     setIsLoading(true);
 
     try {
-      // In a real app, you would upload files to cloud storage first
-      // For now, we'll use placeholder URLs
-      const imageUrls = formData.images.map(
-        (_, index) => `https://placeholder.com/600x400?text=Image${index + 1}`
+      // Convert files to base64 for storage (in a real app, you'd upload to cloud storage)
+      const imageUrls = await Promise.all(
+        formData.images.map(async (file, index) => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+        })
       );
 
-      const fileData = formData.files.map((file, index) => ({
-        url: `https://placeholder.com/file${index + 1}`,
-        filename: file.name,
-        size: file.size,
-        format: file.name.split(".").pop() || "unknown",
-      }));
+      const fileData = await Promise.all(
+        formData.files.map(async (file, index) => ({
+          url: `/api/placeholder/file/${file.name}`, // Placeholder URL for now
+          filename: file.name,
+          size: file.size,
+          format: file.name.split(".").pop() || "unknown",
+        }))
+      );
 
       const productData = {
         title: formData.title,
@@ -288,9 +328,9 @@ const AddProduct = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="price">Price (USD) *</Label>
+                        <Label htmlFor="price">Price (INR) *</Label>
                         <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="price"
                             type="number"
@@ -428,6 +468,67 @@ const AddProduct = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Image Upload */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ImageIcon className="w-5 h-5" />
+                      Preview Images
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                        <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Upload preview images for your product
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageSelect}
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            document.getElementById("image-upload")?.click()
+                          }
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Choose Images
+                        </Button>
+                      </div>
+
+                      {formData.images.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {formData.images.map((image, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={URL.createObjectURL(image)}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-lg"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => removeImage(index)}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Sidebar */}
@@ -438,8 +539,16 @@ const AddProduct = () => {
                     <CardTitle>Preview</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                    <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                      {formData.images.length > 0 ? (
+                        <img
+                          src={URL.createObjectURL(formData.images[0])}
+                          alt="Product preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      )}
                     </div>
                     <h3 className="font-semibold text-lg mb-2">
                       {formData.title || "Product Title"}
@@ -453,7 +562,7 @@ const AddProduct = () => {
                         {formData.category || "Category"}
                       </Badge>
                       <span className="font-bold text-lg text-primary">
-                        ${formData.price || "0.00"}
+                        ₹{formData.price || "0.00"}
                       </span>
                     </div>
                   </CardContent>

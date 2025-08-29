@@ -31,22 +31,30 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { userAPI, productAPI, orderAPI, downloadsAPI } from "@/lib/api";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [userProducts, setUserProducts] = useState([]);
+  const [userOrders, setUserOrders] = useState([]);
+  const [userStats, setUserStats] = useState(null);
   const navigate = useNavigate();
   const { user, logout, updateUser, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  // User data from auth context
+  // User data from auth context and API
   const [userData, setUserData] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    bio: "Passionate designer creating beautiful and functional digital experiences.",
-    location: "",
-    website: "",
+    bio: user?.bio || "",
+    location: user?.location || "",
+    website: user?.website || "",
+    avatar: user?.avatar || "",
     joinDate: user?.joinDate
       ? new Date(user.joinDate).toLocaleDateString("en-US", {
           month: "long",
@@ -72,24 +80,70 @@ const Profile = () => {
     }
   }, [user]);
 
-  const stats = {
-    products: 0, // Will be updated when we implement products API
-    followers: user?.followerCount || 0,
-    following: user?.followingCount || 0,
-    likes: 0, // Will be updated when we implement likes API
-    totalSales: user?.totalSales || 0,
-    rating: user?.rating || 0,
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!user) return;
+
+      setIsLoading(true);
+      try {
+        // Fetch user profile
+        const profileResponse = await userAPI.getUserProfile();
+        setProfileData(profileResponse.data.user);
+
+        // Update local userData with fetched data
+        setUserData((prev) => ({
+          ...prev,
+          name: profileResponse.data.user.name || prev.name,
+          bio: profileResponse.data.user.bio || prev.bio,
+          location: profileResponse.data.user.location || prev.location,
+          website: profileResponse.data.user.website || prev.website,
+          avatar: profileResponse.data.user.avatar || prev.avatar,
+        }));
+
+        // Fetch user products
+        const productsResponse = await userAPI.getUserProducts(user._id, {
+          limit: 12,
+        });
+        setUserProducts(productsResponse.data.products);
+
+        // Fetch user orders
+        const ordersResponse = await orderAPI.getUserOrders({ limit: 10 });
+        setUserOrders(ordersResponse.data.orders);
+
+        // Fetch user stats
+        const statsResponse = await userAPI.getUserStats();
+        setUserStats(statsResponse.data.stats);
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [user, toast]);
+
+  // Use real stats or fallback to defaults
+  const stats = userStats || {
+    productsCount: 0,
+    totalSales: 0,
+    totalDownloads: 0,
+    totalViews: 0,
+    totalOrders: 0,
+    followers: profileData?.followerCount || 0,
+    following: profileData?.followingCount || 0,
+    likes: profileData?.totalLikes || 0,
+    rating: profileData?.rating || 0,
   };
 
-  const products = Array.from({ length: 8 }, (_, i) => ({
-    id: i + 1,
-    title: `Design Product ${i + 1}`,
-    price: "$" + (Math.floor(Math.random() * 50) + 10),
-    image: `/api/placeholder/300/200`,
-    likes: Math.floor(Math.random() * 100) + 10,
-    downloads: Math.floor(Math.random() * 500) + 50,
-    rating: 4.5 + Math.random() * 0.5,
-  }));
+  // Use real products data or empty array
+  const products = userProducts;
 
   const followers = Array.from({ length: 12 }, (_, i) => ({
     id: i + 1,
@@ -101,9 +155,177 @@ const Profile = () => {
     isFollowing: Math.random() > 0.5,
   }));
 
+  const handleDownload = async (orderId: string, productTitle: string) => {
+    try {
+      toast({
+        title: "Download Starting",
+        description: `Preparing ${productTitle} for download...`,
+      });
+
+      const response = await downloadsAPI.downloadFile(orderId);
+
+      // Create blob and download
+      const blob = new Blob([response.data], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${productTitle.replace(
+        /[^a-zA-Z0-9]/g,
+        "_"
+      )}_download.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Complete",
+        description: `${productTitle} has been downloaded successfully`,
+      });
+
+      // Refresh orders to update download count
+      fetchOrders();
+    } catch (error: any) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: error.response?.data?.message || "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAvatarUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      // Upload avatar using the API
+      const response = await userAPI.uploadAvatar(formData);
+
+      if (response.success) {
+        setUserData((prev) => ({
+          ...prev,
+          avatar: response.data.avatarUrl,
+        }));
+
+        toast({
+          title: "Avatar Updated",
+          description: "Your profile picture has been updated successfully",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Upload Failed",
+        description: error.response?.data?.error || "Failed to upload avatar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleBannerUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingBanner(true);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("banner", file);
+
+      // Upload banner using the API
+      const response = await userAPI.uploadBanner(formData);
+
+      if (response.success) {
+        setUserData((prev) => ({
+          ...prev,
+          banner: response.data.bannerUrl,
+        }));
+
+        toast({
+          title: "Banner Updated",
+          description: "Your banner image has been updated successfully",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error uploading banner:", error);
+      toast({
+        title: "Upload Failed",
+        description: error.response?.data?.error || "Failed to upload banner",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
+      // Update profile using the API
+      const response = await userAPI.updateUserProfile({
+        name: userData.name,
+        bio: userData.bio,
+        location: userData.location,
+        website: userData.website,
+        avatar: userData.avatar,
+      });
+
+      // Update auth context
       const success = await updateUser({
         name: userData.name,
         email: userData.email,
@@ -111,15 +333,20 @@ const Profile = () => {
 
       if (success) {
         setIsEditing(false);
+        // Update profile data with response
+        setProfileData(response.data.user);
         toast({
           title: "Profile Updated",
           description: "Your profile has been updated successfully.",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
       toast({
         title: "Update Failed",
-        description: "Failed to update profile. Please try again.",
+        description:
+          error.response?.data?.error ||
+          "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -428,117 +655,123 @@ const Profile = () => {
               {/* Downloads Tab */}
               <TabsContent value="downloads" className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-bold">My Downloads (3)</h2>
-                  <Button variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
-                    View All Downloads
-                  </Button>
+                  <h2 className="text-xl font-bold">
+                    My Downloads ({userOrders.length})
+                  </h2>
+                  {userOrders.length > 0 && (
+                    <Button variant="outline">
+                      <Download className="w-4 h-4 mr-2" />
+                      View All Downloads
+                    </Button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    {
-                      id: 1,
-                      title: "Modern Minimalist Logo Pack",
-                      designer: "Sarah Chen",
-                      price: "$29",
-                      image: "/src/assets/hero-design-1.jpg",
-                      category: "Logos",
-                      downloadDate: "2024-01-15",
-                      rating: 4.9,
-                    },
-                    {
-                      id: 2,
-                      title: "Social Media Template Bundle",
-                      designer: "Alex Rodriguez",
-                      price: "$45",
-                      image: "/src/assets/hero-design-2.jpg",
-                      category: "Templates",
-                      downloadDate: "2024-01-10",
-                      rating: 4.8,
-                    },
-                    {
-                      id: 3,
-                      title: "Icon Set - Business & Finance",
-                      designer: "Emma Thompson",
-                      price: "$19",
-                      image: "/src/assets/hero-design-3.jpg",
-                      category: "Icons",
-                      downloadDate: "2024-01-08",
-                      rating: 5.0,
-                    },
-                  ].map((item) => (
-                    <Card
-                      key={item.id}
-                      className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      <CardContent className="p-0">
-                        <div className="relative overflow-hidden">
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <Badge className="absolute top-4 left-4 bg-background text-foreground">
-                            {item.category}
-                          </Badge>
-                          <div className="absolute top-4 right-4 bg-background/80 rounded-full p-2">
-                            <Download className="h-4 w-4" />
+                {userOrders.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <Download className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        No Downloads Yet
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        You haven't purchased any products yet. Browse our
+                        marketplace to find amazing designs!
+                      </p>
+                      <Button onClick={() => navigate("/")}>
+                        Browse Products
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {userOrders.map((order) => (
+                      <Card
+                        key={order.id}
+                        className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                        onClick={() => navigate(`/product/${order.product.id}`)}
+                      >
+                        <CardContent className="p-0">
+                          <div className="relative overflow-hidden">
+                            <img
+                              src={order.product.image}
+                              alt={order.product.title}
+                              className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <Badge className="absolute top-4 left-4 bg-background text-foreground">
+                              {order.product.category}
+                            </Badge>
+                            <div className="absolute top-4 right-4 bg-background/80 rounded-full p-2">
+                              <Download className="h-4 w-4" />
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="p-4 space-y-3">
-                          <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
-                            {item.title}
-                          </h3>
+                          <div className="p-4 space-y-3">
+                            <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
+                              {order.product.title}
+                            </h3>
 
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground font-medium">
-                              {item.designer}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 text-secondary fill-secondary" />
-                              <span className="font-semibold">
-                                {item.rating}
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground font-medium">
+                                {order.product.seller.name}
                               </span>
+                              <div className="flex items-center space-x-1">
+                                <Star className="h-4 w-4 text-secondary fill-secondary" />
+                                <span className="font-semibold">
+                                  {order.product.rating || 4.5}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              <span>Purchased on {order.purchaseDate}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                              <span className="text-xl font-bold text-primary">
+                                ₹{order.amount}
+                              </span>
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-full"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/product/${order.product.id}`);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-primary hover:bg-primary/90 rounded-full"
+                                  disabled={!order.canDownload}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload(
+                                      order._id,
+                                      order.product.title
+                                    );
+                                  }}
+                                >
+                                  <Download className="w-4 h-4 mr-1" />
+                                  {order.canDownload ? "Download" : "Expired"}
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="text-xs text-muted-foreground">
+                              Downloads: {order.downloadCount}/
+                              {order.maxDownloads}
                             </div>
                           </div>
-
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              Downloaded on{" "}
-                              {new Date(item.downloadDate).toLocaleDateString()}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-2">
-                            <span className="text-xl font-bold text-primary">
-                              {item.price}
-                            </span>
-                            <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-full"
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-primary hover:bg-primary/90 rounded-full"
-                              >
-                                <Download className="w-4 h-4 mr-1" />
-                                Download
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
 
               {/* Following Tab */}
@@ -573,18 +806,18 @@ const Profile = () => {
                           <div className="flex gap-1">
                             <Button
                               size="sm"
-                              variant="outline"
-                              onClick={() => handleStartChat(follower.id)}
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
                               variant={
                                 follower.isFollowing ? "outline" : "default"
                               }
                             >
                               {follower.isFollowing ? "Following" : "Follow"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStartChat(follower.id)}
+                            >
+                              <MessageCircle className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
@@ -603,6 +836,85 @@ const Profile = () => {
                   <CardContent className="space-y-4">
                     {isEditing ? (
                       <div className="space-y-4">
+                        {/* Profile Image Upload */}
+                        <div className="space-y-2">
+                          <Label>Profile Picture</Label>
+                          <div className="flex items-center gap-4">
+                            <Avatar className="w-16 h-16">
+                              <AvatarImage src={userData.avatar} />
+                              <AvatarFallback>
+                                {userData.name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAvatarUpload}
+                                className="hidden"
+                                id="avatar-upload"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isUploadingAvatar}
+                                onClick={() =>
+                                  document
+                                    .getElementById("avatar-upload")
+                                    ?.click()
+                                }
+                              >
+                                {isUploadingAvatar
+                                  ? "Uploading..."
+                                  : "Change Picture"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Banner Image Upload */}
+                        <div className="space-y-2">
+                          <Label>Banner Image</Label>
+                          <div className="space-y-2">
+                            {userData.banner && (
+                              <div className="w-full h-32 rounded-lg overflow-hidden bg-muted">
+                                <img
+                                  src={userData.banner}
+                                  alt="Banner"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleBannerUpload}
+                                className="hidden"
+                                id="banner-upload"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isUploadingBanner}
+                                onClick={() =>
+                                  document
+                                    .getElementById("banner-upload")
+                                    ?.click()
+                                }
+                              >
+                                {isUploadingBanner
+                                  ? "Uploading..."
+                                  : userData.banner
+                                  ? "Change Banner"
+                                  : "Add Banner"}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>
                           <Input

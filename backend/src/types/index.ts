@@ -1,4 +1,4 @@
-import { Document } from "mongoose";
+import { Document, Schema } from "mongoose";
 
 // User Types
 export interface IUser extends Document {
@@ -7,6 +7,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   avatar?: string;
+  banner?: string;
   bio?: string;
   location?: string;
   website?: string;
@@ -14,10 +15,17 @@ export interface IUser extends Document {
   role: "user" | "admin";
   followers: string[];
   following: string[];
+  cart: {
+    product: Schema.Types.ObjectId;
+    quantity: number;
+    addedAt: Date;
+  }[];
   totalSales: number;
   rating: number;
   joinDate: Date;
   lastActive: Date;
+  isOnline: boolean;
+  lastSeen: Date;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -30,26 +38,32 @@ export interface IProduct extends Document {
   _id: string;
   title: string;
   description: string;
+  longDescription?: string;
   price: number;
+  originalPrice?: number;
+  discount: number;
   category: string;
   subcategory?: string;
   tags: string[];
   images: string[];
   files: {
+    name: string;
     url: string;
-    filename: string;
-    size: number;
-    format: string;
+    size: string;
+    type: string;
   }[];
-  seller: string;
+  seller: Schema.Types.ObjectId;
   isActive: boolean;
   isFeatured: boolean;
   isExclusive: boolean;
   downloads: number;
   views: number;
-  likes: string[];
+  likes: Schema.Types.ObjectId[];
   rating: number;
   reviewCount: number;
+  license: string;
+  publishDate: Date;
+  lastUpdate: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,12 +101,12 @@ export interface IOrder extends Document {
 // Review Types
 export interface IReview extends Document {
   _id: string;
-  product: string;
-  user: string;
+  product: Schema.Types.ObjectId;
+  user: Schema.Types.ObjectId;
   rating: number;
   comment: string;
   isVerified: boolean;
-  helpfulVotes: string[];
+  helpfulVotes: Schema.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,11 +114,12 @@ export interface IReview extends Document {
 // Message Types
 export interface IMessage extends Document {
   _id: string;
-  sender: string;
-  receiver: string;
+  sender: Schema.Types.ObjectId;
+  receiver: Schema.Types.ObjectId;
   content: string;
   type: "text" | "image" | "file";
   isRead: boolean;
+  readAt?: Date;
   conversationId: string;
   createdAt: Date;
   updatedAt: Date;

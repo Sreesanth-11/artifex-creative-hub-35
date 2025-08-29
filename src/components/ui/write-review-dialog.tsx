@@ -12,28 +12,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { reviewAPI } from "@/lib/api";
 
 interface WriteReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   productName: string;
+  productId: string;
+  onReviewSubmitted?: (review: any) => void;
 }
 
 export const WriteReviewDialog = ({
   open,
   onOpenChange,
   productName,
+  productId,
+  onReviewSubmitted,
 }: WriteReviewDialogProps) => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) {
       toast({
         title: "Please select a rating",
-        description: "You need to rate this product before submitting your review.",
+        description:
+          "You need to rate this product before submitting your review.",
         variant: "destructive",
       });
       return;
@@ -48,18 +55,37 @@ export const WriteReviewDialog = ({
       return;
     }
 
-    // Here you would normally submit the review to your backend
-    console.log("Submitting review:", { rating, review, productName });
-    
-    toast({
-      title: "Review submitted!",
-      description: "Thank you for your feedback. Your review will be published soon.",
-    });
+    setIsSubmitting(true);
+    try {
+      const response = await reviewAPI.createReview(productId, {
+        rating,
+        comment: review.trim(),
+      });
 
-    // Reset form and close dialog
-    setRating(0);
-    setReview("");
-    onOpenChange(false);
+      toast({
+        title: "Review submitted!",
+        description: "Thank you for your feedback.",
+      });
+
+      // Call the callback to update the reviews list
+      if (onReviewSubmitted) {
+        onReviewSubmitted(response.data.review);
+      }
+
+      // Reset form and close dialog
+      setRating(0);
+      setReview("");
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Error submitting review:", error);
+      toast({
+        title: "Failed to submit review",
+        description: error.response?.data?.error || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -119,7 +145,9 @@ export const WriteReviewDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Submit Review</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit Review"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

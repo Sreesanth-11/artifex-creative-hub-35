@@ -4,12 +4,12 @@ import { IReview } from "../types";
 const ReviewSchema = new Schema<IReview>(
   {
     product: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "Product",
       required: true,
     },
     user: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
@@ -31,7 +31,7 @@ const ReviewSchema = new Schema<IReview>(
     },
     helpfulVotes: [
       {
-        type: String,
+        type: Schema.Types.ObjectId,
         ref: "User",
       },
     ],

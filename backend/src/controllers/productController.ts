@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { Product, User } from "../models";
+import { Product, User, Review } from "../models";
 import { validationResult } from "express-validator";
 
 // Get all products with filtering and pagination
@@ -71,8 +71,9 @@ export const getProduct = async (
   next: NextFunction
 ): Promise<void | Response> => {
   try {
+    // Get the product with populated seller information
     const product = await Product.findById(req.params.id)
-      .populate("seller", "name avatar rating totalSales joinDate")
+      .populate("seller", "name avatar isVerified totalSales createdAt")
       .populate({
         path: "likes",
         select: "name avatar",
@@ -85,17 +86,116 @@ export const getProduct = async (
       });
     }
 
+    // Get reviews for this product
+    const reviews = await Review.find({ product: product._id })
+      .populate("user", "name avatar")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Get related products (same category, excluding current product)
+    const relatedProducts = await Product.find({
+      category: product.category,
+      _id: { $ne: product._id },
+      isActive: true,
+    })
+      .limit(4)
+      .select("title price images rating");
+
+    // Transform files to handle both old and new formats
+    const transformedFiles = product.files.map((file: any) => ({
+      name: file.name || file.filename || "Unknown File",
+      url: file.url,
+      size: file.size || "Unknown",
+      type: file.type || file.format || "Unknown",
+    }));
+
+    // Transform the data to match frontend expectations
+    const transformedProduct = {
+      _id: product._id,
+      id: product._id,
+      title: product.title,
+      description: product.description,
+      longDescription: product.longDescription || product.description,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      discount: product.discount,
+      rating: product.rating,
+      reviewCount: product.reviewCount,
+      downloads: product.downloads,
+      views: product.views,
+      images: product.images,
+      category: product.category,
+      tags: product.tags,
+      likes: product.likes,
+      likeCount: product.likes?.length || 0,
+      seller: {
+        _id: (product.seller as any)?._id,
+        name: (product.seller as any)?.name || "Unknown Designer",
+        avatar: (product.seller as any)?.avatar || "/api/placeholder/60/60",
+        isVerified: (product.seller as any)?.isVerified || false,
+        followers: Math.floor(Math.random() * 10000) + 1000, // Mock data for now
+        products: (product.seller as any)?.totalSales || 0,
+        joinDate: (product.seller as any)?.createdAt
+          ? new Date((product.seller as any).createdAt).getFullYear()
+          : new Date().getFullYear(),
+      },
+      designer: {
+        name: (product.seller as any)?.name || "Unknown Designer",
+        avatar: (product.seller as any)?.avatar || "/api/placeholder/60/60",
+        verified: (product.seller as any)?.isVerified || false,
+        followers: Math.floor(Math.random() * 10000) + 1000, // Mock data for now
+        products: (product.seller as any)?.totalSales || 0,
+        joinDate: (product.seller as any)?.createdAt
+          ? new Date((product.seller as any).createdAt).getFullYear()
+          : new Date().getFullYear(),
+      },
+      files: transformedFiles,
+      license: product.license,
+      publishDate: product.publishDate,
+      lastUpdate: product.lastUpdate,
+    };
+
+    // Transform reviews to match frontend expectations
+    const transformedReviews = reviews.map((review) => ({
+      id: review._id,
+      user: (review.user as any)?.name || "Anonymous",
+      avatar: (review.user as any)?.avatar || "/api/placeholder/40/40",
+      rating: review.rating,
+      date: new Date(review.createdAt).toLocaleDateString(),
+      comment: review.comment,
+    }));
+
+    // Transform related products
+    const transformedRelatedProducts = relatedProducts.map(
+      (relatedProduct) => ({
+        id: relatedProduct._id,
+        title: relatedProduct.title,
+        price: `₹${relatedProduct.price}`,
+        image: relatedProduct.images[0] || "/api/placeholder/200/150",
+        rating: relatedProduct.rating,
+      })
+    );
+
     // Increment views if not the seller viewing their own product
-    if (req.user && req.user.id !== (product.seller as any)._id.toString()) {
+    if (
+      req.user &&
+      product.seller &&
+      req.user.id !== (product.seller as any)._id?.toString()
+    ) {
       product.views += 1;
       await product.save();
     }
 
     res.status(200).json({
       success: true,
-      data: { product },
+      data: {
+        product: transformedProduct,
+        reviews: transformedReviews,
+        relatedProducts: transformedRelatedProducts,
+      },
     });
   } catch (error) {
+    console.error("Error in getProduct:", error);
     next(error);
   }
 };

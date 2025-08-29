@@ -3,12 +3,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  CheckCircle,
-  Download,
-  Mail,
-  ArrowRight,
-} from "lucide-react";
+import { CheckCircle, Download, Mail, ArrowRight } from "lucide-react";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
@@ -16,7 +11,7 @@ const PaymentSuccess = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-8 pb-16">
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="text-center space-y-8">
@@ -50,7 +45,7 @@ const PaymentSuccess = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Amount Paid:</span>
-                    <span className="font-semibold">$52.98</span>
+                    <span className="font-semibold">₹525</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Payment Method:</span>
@@ -71,7 +66,9 @@ const PaymentSuccess = () => {
                   </div>
                   <div className="flex items-center space-x-3">
                     <Download className="w-5 h-5 text-primary" />
-                    <span>Download links will be available in your profile</span>
+                    <span>
+                      Download links will be available in your profile
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -86,10 +83,7 @@ const PaymentSuccess = () => {
                 <Download className="w-4 h-4 mr-2" />
                 Go to Downloads
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/shop")}
-              >
+              <Button variant="outline" onClick={() => navigate("/shop")}>
                 Continue Shopping
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>

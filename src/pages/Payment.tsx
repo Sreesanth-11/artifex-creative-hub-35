@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { productAPI, orderAPI } from "@/lib/api";
 import {
   ArrowLeft,
   CreditCard,
@@ -21,40 +24,155 @@ import {
 const Payment = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const productId = searchParams.get("product");
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [product, setProduct] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock product data
-  const product = {
-    id: productId,
-    title: "Modern Logo Design Kit",
-    price: 49.99,
-    author: "Sarah Chen",
-    image: "/api/placeholder/200/200",
-  };
+  // Fetch product data
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!productId) {
+        navigate("/shop");
+        return;
+      }
+
+      try {
+        const response = await productAPI.getProduct(productId);
+        setProduct(response.data);
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        toast({
+          title: "Error",
+          description: "Product not found",
+          variant: "destructive",
+        });
+        navigate("/shop");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId, navigate, toast]);
+
+  // Check authentication
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   const handlePayment = async () => {
+    if (!product || !user) return;
+
     setIsProcessing(true);
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsProcessing(false);
-    navigate("/payment-success");
+    try {
+      const response = await orderAPI.createOrder({
+        productId: product._id,
+      });
+
+      // Check if we're in test mode (order already completed)
+      if (response.data.testMode) {
+        toast({
+          title: "Purchase Successful!",
+          description:
+            "You can now download this product. Order completed in test mode.",
+        });
+        navigate("/profile?tab=orders");
+      } else {
+        // Production mode - would integrate with Stripe here
+        toast({
+          title: "Purchase Initiated",
+          description: "Processing payment...",
+        });
+
+        // Simulate payment success after 2 seconds
+        setTimeout(async () => {
+          try {
+            await orderAPI.confirmOrder({
+              paymentIntentId: response.data.clientSecret,
+            });
+
+            toast({
+              title: "Purchase Successful!",
+              description: "You can now download this product",
+            });
+            navigate("/profile?tab=orders");
+          } catch (error) {
+            console.error("Error confirming order:", error);
+            toast({
+              title: "Payment Failed",
+              description: "There was an issue processing your payment",
+              variant: "destructive",
+            });
+          }
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        "Unable to process payment. Please try again.";
+      toast({
+        title: "Payment Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-8 pb-16">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading product...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-8 pb-16">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="text-center py-12">
+              <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+              <p className="text-muted-foreground mb-6">
+                The product you're trying to purchase doesn't exist.
+              </p>
+              <Button onClick={() => navigate("/shop")}>Back to Shop</Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-8 pb-16">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-2xl font-bold">Checkout</h1>
@@ -76,17 +194,26 @@ const Payment = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <RadioGroup
+                    value={paymentMethod}
+                    onValueChange={setPaymentMethod}
+                  >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="card" id="card" />
-                      <Label htmlFor="card" className="flex items-center cursor-pointer">
+                      <Label
+                        htmlFor="card"
+                        className="flex items-center cursor-pointer"
+                      >
                         <CreditCard className="w-4 h-4 mr-2" />
                         Credit/Debit Card
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="paypal" id="paypal" />
-                      <Label htmlFor="paypal" className="flex items-center cursor-pointer">
+                      <Label
+                        htmlFor="paypal"
+                        className="flex items-center cursor-pointer"
+                      >
                         <Wallet className="w-4 h-4 mr-2" />
                         PayPal
                       </Label>
@@ -110,7 +237,7 @@ const Payment = () => {
                         className="mt-1"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="expiry">Expiry Date</Label>
@@ -122,14 +249,10 @@ const Payment = () => {
                       </div>
                       <div>
                         <Label htmlFor="cvv">CVV</Label>
-                        <Input
-                          id="cvv"
-                          placeholder="123"
-                          className="mt-1"
-                        />
+                        <Input id="cvv" placeholder="123" className="mt-1" />
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="cardName">Cardholder Name</Label>
                       <Input
@@ -157,7 +280,7 @@ const Payment = () => {
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="address">Address</Label>
                     <Input
@@ -166,7 +289,7 @@ const Payment = () => {
                       className="mt-1"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="city">City</Label>
@@ -178,11 +301,7 @@ const Payment = () => {
                     </div>
                     <div>
                       <Label htmlFor="zip">ZIP Code</Label>
-                      <Input
-                        id="zip"
-                        placeholder="10001"
-                        className="mt-1"
-                      />
+                      <Input id="zip" placeholder="10001" className="mt-1" />
                     </div>
                   </div>
                 </CardContent>
@@ -198,34 +317,36 @@ const Payment = () => {
                 <CardContent className="space-y-4">
                   <div className="flex space-x-4">
                     <img
-                      src={product.image}
+                      src={product.images?.[0] || "/api/placeholder/200/200"}
                       alt={product.title}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
                     <div className="flex-1">
                       <h3 className="font-semibold">{product.title}</h3>
-                      <p className="text-sm text-muted-foreground">by {product.author}</p>
+                      <p className="text-sm text-muted-foreground">
+                        by {product.seller?.name || "Unknown"}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${product.price}</p>
+                      <p className="font-semibold">₹{product.price}</p>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span>${product.price}</span>
+                      <span>₹{product.price}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Processing Fee</span>
-                      <span>$2.99</span>
+                      <span>₹25</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold text-lg">
                       <span>Total</span>
-                      <span>${(product.price + 2.99).toFixed(2)}</span>
+                      <span>₹{(product.price + 25).toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -236,7 +357,9 @@ const Payment = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Lock className="w-4 h-4" />
-                    <span>Your payment information is encrypted and secure</span>
+                    <span>
+                      Your payment information is encrypted and secure
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -253,7 +376,7 @@ const Payment = () => {
                 ) : (
                   <>
                     <Lock className="w-4 h-4 mr-2" />
-                    Complete Payment ${(product.price + 2.99).toFixed(2)}
+                    Complete Payment ₹{(product.price + 25).toFixed(2)}
                   </>
                 )}
               </Button>

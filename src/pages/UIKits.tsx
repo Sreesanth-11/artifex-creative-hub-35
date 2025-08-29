@@ -7,8 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Grid3X3, List, Heart, Download, Star, Eye, Layers } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  Grid3X3,
+  List,
+  Heart,
+  Download,
+  Star,
+  Eye,
+  Layers,
+} from "lucide-react";
 
 const UIKits = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -22,13 +37,15 @@ const UIKits = () => {
     title: `UI Kit ${i + 1}`,
     designer: "Designer Name",
     designerAvatar: "/api/placeholder/40/40",
-    price: "$" + (Math.floor(Math.random() * 100) + 30),
+    price: "₹" + (Math.floor(Math.random() * 1000) + 300),
     rating: 4.5 + Math.random() * 0.5,
     downloads: Math.floor(Math.random() * 1500) + 120,
     views: Math.floor(Math.random() * 4000) + 600,
     image: `/api/placeholder/300/200`,
     components: Math.floor(Math.random() * 50) + 20,
-    platform: ["Mobile", "Web", "Desktop", "Cross-platform"][Math.floor(Math.random() * 4)],
+    platform: ["Mobile", "Web", "Desktop", "Cross-platform"][
+      Math.floor(Math.random() * 4)
+    ],
     isNew: Math.random() > 0.8,
     isPremium: Math.random() > 0.85,
   }));
@@ -36,18 +53,22 @@ const UIKits = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-8">
         <div className="bg-muted/30 py-12">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center space-y-6">
               <h1 className="text-3xl md:text-4xl font-bold">
-                Complete <span className="bg-gradient-primary bg-clip-text text-transparent">UI Kits</span>
+                Complete{" "}
+                <span className="bg-gradient-primary bg-clip-text text-transparent">
+                  UI Kits
+                </span>
               </h1>
               <p className="text-lg text-muted-foreground">
-                Professional UI components and design systems for your applications
+                Professional UI components and design systems for your
+                applications
               </p>
-              
+
               <div className="relative max-w-2xl mx-auto">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -64,7 +85,7 @@ const UIKits = () => {
             <span className="text-sm text-muted-foreground">
               Showing 1-24 of 432 UI kits
             </span>
-            
+
             <div className="flex items-center space-x-4">
               <Select defaultValue="popular">
                 <SelectTrigger className="w-40">
@@ -100,11 +121,13 @@ const UIKits = () => {
             </div>
           </div>
 
-          <div className={`grid gap-6 ${
-            viewMode === "grid" 
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" 
-              : "grid-cols-1"
-          }`}>
+          <div
+            className={`grid gap-6 ${
+              viewMode === "grid"
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                : "grid-cols-1"
+            }`}
+          >
             {uiKits.map((uiKit) => (
               <Link key={uiKit.id} to={`/product/${uiKit.id}`}>
                 <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
@@ -116,16 +139,20 @@ const UIKits = () => {
                         className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
-                      
+
                       <div className="absolute top-3 left-3 flex gap-2">
                         <Badge className="bg-background/90 text-foreground">
                           {uiKit.platform}
                         </Badge>
                         {uiKit.isNew && (
-                          <Badge className="bg-accent text-accent-foreground">New</Badge>
+                          <Badge className="bg-accent text-accent-foreground">
+                            New
+                          </Badge>
                         )}
                         {uiKit.isPremium && (
-                          <Badge className="bg-gradient-primary text-primary-foreground">Premium</Badge>
+                          <Badge className="bg-gradient-primary text-primary-foreground">
+                            Premium
+                          </Badge>
                         )}
                       </div>
 
@@ -137,10 +164,18 @@ const UIKits = () => {
                       </div>
 
                       <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <Button size="icon" variant="secondary" className="h-8 w-8">
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="h-8 w-8"
+                        >
                           <Heart className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="secondary" className="h-8 w-8">
+                        <Button
+                          size="icon"
+                          variant="secondary"
+                          className="h-8 w-8"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                       </div>
@@ -157,11 +192,15 @@ const UIKits = () => {
                             <AvatarImage src={uiKit.designerAvatar} />
                             <AvatarFallback>{uiKit.designer[0]}</AvatarFallback>
                           </Avatar>
-                          <span className="text-sm text-muted-foreground">{uiKit.designer}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {uiKit.designer}
+                          </span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Star className="h-4 w-4 text-secondary fill-secondary" />
-                          <span className="text-sm font-medium">{uiKit.rating.toFixed(1)}</span>
+                          <span className="text-sm font-medium">
+                            {uiKit.rating.toFixed(1)}
+                          </span>
                         </div>
                       </div>
 
@@ -176,7 +215,9 @@ const UIKits = () => {
                             <span>{uiKit.views}</span>
                           </div>
                         </div>
-                        <span className="text-lg font-bold text-primary">{uiKit.price}</span>
+                        <span className="text-lg font-bold text-primary">
+                          {uiKit.price}
+                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -187,13 +228,29 @@ const UIKits = () => {
 
           <div className="flex justify-center mt-12">
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">Previous</Button>
-              <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">1</Button>
-              <Button variant="outline" size="sm">2</Button>
-              <Button variant="outline" size="sm">3</Button>
+              <Button variant="outline" size="sm">
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-primary text-primary-foreground"
+              >
+                1
+              </Button>
+              <Button variant="outline" size="sm">
+                2
+              </Button>
+              <Button variant="outline" size="sm">
+                3
+              </Button>
               <span className="text-muted-foreground">...</span>
-              <Button variant="outline" size="sm">6</Button>
-              <Button variant="outline" size="sm">Next</Button>
+              <Button variant="outline" size="sm">
+                6
+              </Button>
+              <Button variant="outline" size="sm">
+                Next
+              </Button>
             </div>
           </div>
         </div>

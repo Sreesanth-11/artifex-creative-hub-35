@@ -30,6 +30,10 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: null,
     },
+    banner: {
+      type: String,
+      default: null,
+    },
     bio: {
       type: String,
       maxlength: [500, "Bio cannot be more than 500 characters"],
@@ -66,6 +70,17 @@ const UserSchema = new Schema<IUser>(
         ref: "User",
       },
     ],
+    cart: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: { type: Number, default: 1, min: 1 },
+        addedAt: { type: Date, default: Date.now },
+      },
+    ],
     totalSales: {
       type: Number,
       default: 0,
@@ -84,6 +99,14 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       default: Date.now,
     },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -98,12 +121,12 @@ const UserSchema = new Schema<IUser>(
 
 // Virtual for follower count
 UserSchema.virtual("followerCount").get(function (this: IUser) {
-  return this.followers.length;
+  return this.followers?.length || 0;
 });
 
 // Virtual for following count
 UserSchema.virtual("followingCount").get(function (this: IUser) {
-  return this.following.length;
+  return this.following?.length || 0;
 });
 
 // Hash password before saving
