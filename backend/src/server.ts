@@ -70,6 +70,9 @@ app.use(
       "http://localhost:8081",
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Range", "X-Content-Range"],
   })
 );
 app.use(express.json({ limit: "10mb" }));
@@ -306,11 +309,10 @@ app.post("/api/test/create-sample-chat", async (req, res): Promise<void> => {
       await user2.save();
     }
 
-    // Create sample messages
-    const conversationId = Message.generateConversationId(
-      user1._id.toString(),
-      user2._id.toString()
-    );
+    // Create sample messages - simplified approach
+    const conversationId = [user1._id.toString(), user2._id.toString()]
+      .sort()
+      .join("_");
 
     const sampleMessages = [
       {
@@ -516,6 +518,87 @@ app.post(
   }
 );
 
+// Test endpoint to create sample downloads (development only)
+app.post(
+  "/api/test/create-sample-downloads",
+  async (_req, res): Promise<void> => {
+    if (process.env.NODE_ENV !== "development") {
+      res.status(403).json({ error: "Only available in development" });
+      return;
+    }
+
+    try {
+      const { User, Product, Download, Order } = await import("./models");
+
+      // Find a test user
+      const user = await User.findOne({ email: "testuser1@example.com" });
+      if (!user) {
+        res.status(404).json({ error: "Test user not found. Create sample users first." });
+        return;
+      }
+
+      // Find some products
+      const products = await Product.find().limit(4);
+      if (products.length === 0) {
+        res.status(404).json({ error: "No products found. Create sample products first." });
+        return;
+      }
+
+      // Create a test order
+      let order = await Order.findOne({ user: user._id });
+      if (!order) {
+        order = await Order.create({
+          user: user._id,
+          products: products.map(product => ({
+            product: product._id,
+            quantity: 1,
+            price: product.price
+          })),
+          totalAmount: products.reduce((sum, product) => sum + product.price, 0),
+          status: "completed",
+          paymentMethod: "credit_card",
+          paymentStatus: "paid"
+        });
+      }
+
+      // Delete existing downloads for this user
+      await Download.deleteMany({ user: user._id });
+
+      // Create sample downloads
+      const downloads = [];
+      for (const product of products) {
+        downloads.push({
+          user: user._id,
+          product: product._id,
+          order: order._id,
+          downloadedAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000), // Random date within last 30 days
+          ipAddress: "127.0.0.1",
+          userAgent: "Mozilla/5.0 (Test Browser)"
+        });
+      }
+
+      const createdDownloads = await Download.insertMany(downloads);
+
+      res.json({
+        success: true,
+        message: "Sample downloads created successfully",
+        data: {
+          downloads: createdDownloads,
+          count: createdDownloads.length,
+          user: user.email
+        },
+      });
+    } catch (error) {
+      console.error("Error creating sample downloads:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to create sample downloads",
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+);
+
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -527,101 +610,59 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/cart", cartRoutes);
 
-// Socket.io for real-time chat
+// Socket.io for real-time chat - Simplified approach
 io.on("connection", (socket) => {
-  console.log("👤 User connected:", socket.id);
+  console.log("User connected:", socket.id);
 
   // Join user to their personal room
   socket.on("join", (userId) => {
     socket.join(userId);
-    console.log(`👤 User ${userId} joined their room`);
+    console.log(`User ${userId} joined room`);
   });
 
-  // Handle sending messages
-  socket.on("sendMessage", async (data) => {
+  // Handle sending messages - Simplified
+  socket.on("sendMessage", async (messageData) => {
     try {
-      const { senderId, receiverId, content, type = "text" } = data;
+      const { senderId, receiverId, content, senderName, senderAvatar } =
+        messageData;
 
-      // Generate conversation ID
-      const Message = (await import("./models/Message")).default;
-      const conversationId = Message.generateConversationId(
-        senderId,
-        receiverId
-      );
-
-      // Create and save message
-      const message = new Message({
+      // Create simple message object
+      const messageToSave = {
         sender: senderId,
         receiver: receiverId,
-        content,
-        type,
-        conversationId,
-      });
-
-      await message.save();
-      await message.populate("sender", "name avatar");
-
-      // Transform message for real-time delivery
-      const transformedMessage = {
-        id: message._id,
-        senderId: (message.sender as any)._id,
-        content: message.content,
-        timestamp: new Date(message.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isMe: false, // Will be determined by the client
-        isRead: message.isRead,
-        type: message.type,
+        content: content,
+        createdAt: new Date(),
       };
 
-      // Send to receiver
-      socket.to(receiverId).emit("newMessage", transformedMessage);
+      // Save to database (simplified)
+      const Message = (await import("./models/Message")).default;
+      const savedMessage = await new Message(messageToSave).save();
 
-      // Send confirmation to sender
-      socket.emit("messageSent", { ...transformedMessage, isMe: true });
+      // Send to receiver with sender info
+      const messageToSend = {
+        id: savedMessage._id,
+        senderId: senderId,
+        senderName: senderName,
+        senderAvatar: senderAvatar,
+        content: content,
+        createdAt: savedMessage.createdAt,
+        tempId: messageData.tempId, // For client-side message matching
+      };
+
+      // Emit to receiver
+      socket.to(receiverId).emit("newMessage", messageToSend);
+
+      // Confirm to sender
+      socket.emit("messageSent", messageToSend);
     } catch (error) {
       console.error("Error sending message:", error);
       socket.emit("messageError", { error: "Failed to send message" });
     }
   });
 
-  // Handle typing indicators
-  socket.on("typing", (data) => {
-    socket.to(data.receiverId).emit("userTyping", {
-      senderId: data.senderId,
-      isTyping: true,
-    });
-  });
-
-  socket.on("stopTyping", (data) => {
-    socket.to(data.receiverId).emit("userTyping", {
-      senderId: data.senderId,
-      isTyping: false,
-    });
-  });
-
-  // Handle marking messages as read
-  socket.on("markAsRead", async (data) => {
-    try {
-      const { userId, otherUserId } = data;
-      const Message = (await import("./models/Message")).default;
-      const conversationId = Message.generateConversationId(
-        userId,
-        otherUserId
-      );
-
-      await Message.markConversationAsRead(conversationId, userId);
-
-      // Notify the other user that messages were read
-      socket.to(otherUserId).emit("messagesRead", { userId });
-    } catch (error) {
-      console.error("Error marking messages as read:", error);
-    }
-  });
-
+  // Handle disconnect - simplified
   socket.on("disconnect", () => {
-    console.log("👤 User disconnected:", socket.id);
+    console.log("User disconnected:", socket.id);
   });
 });
 

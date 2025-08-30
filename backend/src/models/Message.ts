@@ -1,7 +1,16 @@
 import mongoose, { Schema } from "mongoose";
-import { IMessage } from "../types";
 
-const MessageSchema = new Schema<IMessage>(
+// Simplified Message interface
+interface ISimpleMessage extends mongoose.Document {
+  sender: mongoose.Types.ObjectId;
+  receiver: mongoose.Types.ObjectId;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Simplified Message Schema - following reference project approach
+const MessageSchema = new Schema<ISimpleMessage>(
   {
     sender: {
       type: Schema.Types.ObjectId,
@@ -15,81 +24,18 @@ const MessageSchema = new Schema<IMessage>(
     },
     content: {
       type: String,
-      required: [true, "Message content is required"],
-      trim: true,
-      maxlength: [2000, "Message cannot be more than 2000 characters"],
-    },
-    type: {
-      type: String,
-      enum: ["text", "image", "file"],
-      default: "text",
-    },
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
-    readAt: {
-      type: Date,
-    },
-    conversationId: {
-      type: String,
       required: true,
-      index: true,
+      trim: true,
     },
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
   }
 );
 
-// Index for efficient queries
-MessageSchema.index({ conversationId: 1, createdAt: -1 });
+// Simple indexes for basic queries
 MessageSchema.index({ sender: 1, createdAt: -1 });
-MessageSchema.index({ receiver: 1, isRead: 1 });
+MessageSchema.index({ receiver: 1, createdAt: -1 });
 
-// Method to mark as read
-MessageSchema.methods.markAsRead = function () {
-  this.isRead = true;
-  return this.save();
-};
-
-// Static method to generate conversation ID
-MessageSchema.statics.generateConversationId = function (
-  userId1: string,
-  userId2: string
-) {
-  // Sort IDs to ensure consistent conversation ID regardless of order
-  const sortedIds = [userId1, userId2].sort();
-  return `${sortedIds[0]}_${sortedIds[1]}`;
-};
-
-// Static method to mark all messages as read in a conversation
-MessageSchema.statics.markConversationAsRead = function (
-  conversationId: string,
-  userId: string
-) {
-  return this.updateMany(
-    {
-      conversationId,
-      receiver: userId,
-      isRead: false,
-    },
-    {
-      isRead: true,
-      readAt: new Date(),
-    }
-  );
-};
-
-// Define the model interface with static methods
-interface IMessageModel extends mongoose.Model<IMessage> {
-  generateConversationId(userId1: string, userId2: string): string;
-  markConversationAsRead(conversationId: string, userId: string): Promise<any>;
-}
-
-export default mongoose.model<IMessage, IMessageModel>(
-  "Message",
-  MessageSchema
-);
+// Export simplified model
+export default mongoose.model<ISimpleMessage>("Message", MessageSchema);

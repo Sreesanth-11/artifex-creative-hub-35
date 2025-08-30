@@ -139,12 +139,12 @@ export interface IConversation extends Document {
 // Download Types
 export interface IDownload extends Document {
   _id: string;
-  user: string;
-  product: string;
-  order: string;
+  user: Schema.Types.ObjectId;
+  product: Schema.Types.ObjectId;
+  order?: Schema.Types.ObjectId;
   downloadedAt: Date;
-  ipAddress: string;
-  userAgent: string;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 // Follower Types

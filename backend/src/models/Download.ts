@@ -4,19 +4,19 @@ import { IDownload } from "../types";
 const DownloadSchema = new Schema<IDownload>(
   {
     user: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     product: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "Product",
       required: true,
     },
     order: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "Order",
-      required: true,
+      required: false, // Make it optional for now to fix existing issues
     },
     downloadedAt: {
       type: Date,
@@ -24,11 +24,11 @@ const DownloadSchema = new Schema<IDownload>(
     },
     ipAddress: {
       type: String,
-      required: true,
+      required: false, // Make it optional for now to fix existing issues
     },
     userAgent: {
       type: String,
-      required: true,
+      required: false, // Make it optional for now to fix existing issues
     },
   },
   {

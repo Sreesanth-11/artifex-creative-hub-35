@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { Message, User } from "../models";
 import { validationResult } from "express-validator";
 
-// Get chat conversations for a user
+// Get chat conversations for a user - Simplified approach
 export const getConversations = async (
   req: Request,
   res: Response,
@@ -17,7 +17,7 @@ export const getConversations = async (
       });
     }
 
-    // Get all conversations where user is sender or receiver
+    // Get unique conversations - simplified approach
     const conversations = await Message.aggregate([
       {
         $match: {
@@ -29,22 +29,11 @@ export const getConversations = async (
       },
       {
         $group: {
-          _id: "$conversationId",
-          lastMessage: { $first: "$$ROOT" },
-          unreadCount: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $eq: ["$receiver", userId] },
-                    { $eq: ["$isRead", false] },
-                  ],
-                },
-                1,
-                0,
-              ],
-            },
+          _id: {
+            $cond: [{ $eq: ["$sender", userId] }, "$receiver", "$sender"],
           },
+          lastMessage: { $first: "$$ROOT" },
+          messageCount: { $sum: 1 },
         },
       },
       {
@@ -121,15 +110,16 @@ export const getMessages = async (
       });
     }
 
-    // Generate conversation ID
-    const conversationId = Message.generateConversationId(userId, otherUserId);
-
-    // Get messages with pagination
-    const messages = await Message.find({ conversationId })
+    // Get messages between two users - simplified approach
+    const messages = await Message.find({
+      $or: [
+        { sender: userId, receiver: otherUserId },
+        { sender: otherUserId, receiver: userId },
+      ],
+    })
       .populate("sender", "name avatar")
-      .populate("receiver", "name avatar")
       .sort({ createdAt: -1 })
-      .limit(limit * page)
+      .limit(limit)
       .skip((page - 1) * limit);
 
     // Transform messages to match frontend expectations
@@ -142,12 +132,7 @@ export const getMessages = async (
         minute: "2-digit",
       }),
       isMe: msg.sender._id.toString() === userId,
-      isRead: msg.isRead,
-      type: msg.type,
     }));
-
-    // Mark messages as read
-    await Message.markConversationAsRead(conversationId, userId);
 
     res.status(200).json({
       success: true,
@@ -176,7 +161,7 @@ export const sendMessage = async (
     }
 
     const userId = req.user?.id;
-    const { receiverId, content, type = "text" } = req.body;
+    const { receiverId, content } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -194,16 +179,11 @@ export const sendMessage = async (
       });
     }
 
-    // Generate conversation ID
-    const conversationId = Message.generateConversationId(userId, receiverId);
-
-    // Create new message
+    // Create new message - simplified
     const message = new Message({
       sender: userId,
       receiver: receiverId,
       content,
-      type,
-      conversationId,
     });
 
     await message.save();
@@ -211,7 +191,7 @@ export const sendMessage = async (
     // Populate sender info for response
     await message.populate("sender", "name avatar");
 
-    // Transform message for response
+    // Transform message for response - simplified
     const transformedMessage = {
       id: message._id,
       senderId: (message.sender as any)._id,
@@ -221,8 +201,6 @@ export const sendMessage = async (
         minute: "2-digit",
       }),
       isMe: true,
-      isRead: message.isRead,
-      type: message.type,
     };
 
     res.status(201).json({
@@ -252,9 +230,8 @@ export const markAsRead = async (
       });
     }
 
-    const conversationId = Message.generateConversationId(userId, otherUserId);
-
-    await Message.markConversationAsRead(conversationId, userId);
+    // Mark messages as read - simplified approach (no-op since we removed read status)
+    // In the simplified version, we don't track read status
 
     res.status(200).json({
       success: true,

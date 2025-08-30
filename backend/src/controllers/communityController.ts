@@ -363,3 +363,177 @@ export const addComment = async (
     });
   }
 };
+
+// Toggle like on comment
+export const toggleCommentLike = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    const { commentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid comment ID",
+      });
+      return;
+    }
+
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+      return;
+    }
+
+    const isLiked = comment.likes.includes(new mongoose.Types.ObjectId(userId));
+
+    if (isLiked) {
+      comment.likes = comment.likes.filter((id) => id.toString() !== userId);
+    } else {
+      comment.likes.push(new mongoose.Types.ObjectId(userId));
+    }
+
+    await comment.save();
+
+    res.json({
+      success: true,
+      data: {
+        isLiked: !isLiked,
+        likeCount: comment.likes.length,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error toggling comment like:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to toggle comment like",
+    });
+  }
+};
+
+// Get trending topics
+export const getTrendingTopics = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    // Get most used tags from recent posts
+    const trendingTags = await Post.aggregate([
+      {
+        $match: {
+          isActive: true,
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
+        },
+      },
+      { $unwind: "$tags" },
+      {
+        $group: {
+          _id: "$tags",
+          count: { $sum: 1 },
+          posts: { $addToSet: "$_id" },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          name: "$_id",
+          posts: { $size: "$posts" },
+          _id: 0,
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      data: { topics: trendingTags },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching trending topics:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch trending topics",
+    });
+  }
+};
+
+// Get featured users (most active/popular users)
+export const getFeaturedUsers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 5;
+
+    // Get users with most posts and likes in the last 30 days
+    const featuredUsers = await Post.aggregate([
+      {
+        $match: {
+          isActive: true,
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
+      },
+      {
+        $group: {
+          _id: "$author",
+          postCount: { $sum: 1 },
+          totalLikes: { $sum: { $size: "$likes" } },
+          totalViews: { $sum: "$views" },
+        },
+      },
+      {
+        $addFields: {
+          score: {
+            $add: [
+              { $multiply: ["$postCount", 10] },
+              { $multiply: ["$totalLikes", 5] },
+              { $multiply: ["$totalViews", 1] },
+            ],
+          },
+        },
+      },
+      { $sort: { score: -1 } },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          _id: "$user._id",
+          name: "$user.name",
+          avatar: "$user.avatar",
+          bio: "$user.bio",
+          followerCount: { $size: { $ifNull: ["$user.followers", []] } },
+          postCount: 1,
+          totalLikes: 1,
+          isVerified: "$user.isVerified",
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      data: { users: featuredUsers },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching featured users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch featured users",
+    });
+  }
+};

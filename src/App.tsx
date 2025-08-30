@@ -19,7 +19,7 @@ import Payment from "./pages/Payment";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Downloads from "./pages/Downloads";
 import PublicProfile from "./pages/PublicProfile";
-import Chat from "./pages/Chat";
+import ChatSimple from "./pages/ChatSimple";
 import Cart from "./pages/Cart";
 import Logos from "./pages/Logos";
 import Icons from "./pages/Icons";
@@ -83,7 +83,7 @@ const App = () => (
                 path="/chat/:userId?"
                 element={
                   <ProtectedRoute>
-                    <Chat />
+                    <ChatSimple />
                   </ProtectedRoute>
                 }
               />

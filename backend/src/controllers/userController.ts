@@ -50,6 +50,23 @@ export const getUserProfile = async (
       0
     );
 
+    // Calculate profile completion percentage
+    const profileFields = [
+      user.name,
+      user.email,
+      user.bio,
+      user.location,
+      user.website,
+      user.avatar,
+      user.banner,
+    ];
+    const completedFields = profileFields.filter(
+      (field) => field && field.trim() !== ""
+    ).length;
+    const profileCompletion = Math.round(
+      (completedFields / profileFields.length) * 100
+    );
+
     // Transform user data
     const transformedUser = {
       id: user._id,
@@ -59,6 +76,7 @@ export const getUserProfile = async (
       location: user.location || "",
       website: user.website || "",
       avatar: user.avatar || "",
+      banner: user.banner || "",
       isVerified: user.isVerified,
       role: user.role,
       followers: user.followers || [],
@@ -72,6 +90,7 @@ export const getUserProfile = async (
       isOnline: user.isOnline,
       lastSeen: user.lastSeen,
       isActive: user.isActive,
+      profileCompletion,
       // Additional stats
       productsCount,
       totalLikes,

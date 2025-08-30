@@ -72,15 +72,24 @@ const Community = () => {
   const handleLikePost = async (postId: string) => {
     try {
       await communityAPI.togglePostLike(postId);
-      // Refresh posts to get updated like count
-      const response = await communityAPI.getPosts({
-        page: 1,
-        limit: 20,
-        category: activeTab === "feed" ? undefined : activeTab,
-        search: searchQuery || undefined,
-        sort: "newest",
-      });
-      setPosts(response.data.posts);
+      // Update the specific post in the state instead of refetching all posts
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => {
+          if (post._id === postId) {
+            const isLiked = post.likes?.includes(post.currentUserLiked);
+            return {
+              ...post,
+              likes: isLiked
+                ? post.likes.filter((id) => id !== post.currentUserLiked)
+                : [...(post.likes || []), post.currentUserLiked],
+              likeCount: isLiked
+                ? (post.likeCount || 0) - 1
+                : (post.likeCount || 0) + 1,
+            };
+          }
+          return post;
+        })
+      );
     } catch (error) {
       console.error("Error liking post:", error);
       toast({
@@ -132,16 +141,31 @@ const Community = () => {
 
   const filteredAndSortedPosts = getFilteredPosts();
 
-  const trendingTopics = [
-    { name: "Logo Design", posts: "2.4k" },
-    { name: "UI/UX", posts: "1.8k" },
-    { name: "Illustrations", posts: "1.2k" },
-    { name: "Branding", posts: "980" },
-    { name: "Typography", posts: "756" },
-  ];
-
-  // Featured designers would come from API in a real implementation
+  const [trendingTopics, setTrendingTopics] = useState<any[]>([]);
   const [featuredDesigners, setFeaturedDesigners] = useState<any[]>([]);
+
+  // Fetch trending topics and featured users
+  useEffect(() => {
+    const fetchSidebarData = async () => {
+      try {
+        // Fetch trending topics
+        const topicsResponse = await communityAPI.getTrendingTopics(5);
+        if (topicsResponse.success) {
+          setTrendingTopics(topicsResponse.data.topics);
+        }
+
+        // Fetch featured users
+        const usersResponse = await communityAPI.getFeaturedUsers(5);
+        if (usersResponse.success) {
+          setFeaturedDesigners(usersResponse.data.users);
+        }
+      } catch (error) {
+        console.error("Error fetching sidebar data:", error);
+      }
+    };
+
+    fetchSidebarData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -203,17 +227,24 @@ const Community = () => {
                     Trending Topics
                   </h3>
                   <div className="space-y-3">
-                    {trendingTopics.map((topic, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between cursor-pointer hover:text-primary transition-colors"
-                      >
-                        <span className="text-sm">#{topic.name}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {topic.posts}
-                        </Badge>
+                    {trendingTopics.length > 0 ? (
+                      trendingTopics.map((topic, index) => (
+                        <div
+                          key={topic.name}
+                          className="flex items-center justify-between cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => setSearchQuery(topic.name)}
+                        >
+                          <span className="text-sm">#{topic.name}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {topic.posts}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-sm">No trending topics yet</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -226,28 +257,55 @@ const Community = () => {
                     Featured Designers
                   </h3>
                   <div className="space-y-4">
-                    {featuredDesigners.map((designer, index) => (
-                      <div key={index} className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={designer.avatar} />
-                          <AvatarFallback>{designer.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {designer.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {designer.specialty}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {designer.followers} followers
-                          </p>
+                    {featuredDesigners.length > 0 ? (
+                      featuredDesigners.map((designer) => (
+                        <div
+                          key={designer._id}
+                          className="flex items-center space-x-3"
+                        >
+                          <Avatar
+                            className="h-10 w-10 cursor-pointer"
+                            onClick={() => navigate(`/profile/${designer._id}`)}
+                          >
+                            <AvatarImage src={designer.avatar} />
+                            <AvatarFallback>
+                              {designer.name?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="font-medium text-sm truncate cursor-pointer hover:text-primary"
+                              onClick={() =>
+                                navigate(`/profile/${designer._id}`)
+                              }
+                            >
+                              {designer.name}
+                              {designer.isVerified && (
+                                <Award className="w-3 h-3 inline ml-1 text-accent" />
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {designer.bio || "Creative professional"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {designer.followerCount} followers •{" "}
+                              {designer.postCount} posts
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            Follow
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" className="text-xs">
-                          Follow
-                        </Button>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-sm">No featured designers yet</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -303,7 +361,7 @@ const Community = () => {
 
                   {/* Posts Feed */}
                   {filteredAndSortedPosts.map((post) => (
-                    <Card key={post.id} className="group">
+                    <Card key={post._id} className="group">
                       <CardContent className="p-6 space-y-4">
                         {/* Post Header */}
                         <div className="flex items-start space-x-3">
@@ -311,9 +369,9 @@ const Community = () => {
                             className="h-12 w-12 cursor-pointer"
                             onClick={() =>
                               navigate(
-                                `/profile/${post.author?.name
-                                  ?.toLowerCase()
-                                  .replace(" ", "-")}`
+                                `/profile/${
+                                  post.author?._id || post.author?.id
+                                }`
                               )
                             }
                           >
@@ -330,9 +388,9 @@ const Community = () => {
                                     className="font-semibold cursor-pointer hover:text-primary transition-colors"
                                     onClick={() =>
                                       navigate(
-                                        `/profile/${post.author?.name
-                                          ?.toLowerCase()
-                                          .replace(" ", "-")}`
+                                        `/profile/${
+                                          post.author?._id || post.author?.id
+                                        }`
                                       )
                                     }
                                   >
@@ -401,14 +459,19 @@ const Community = () => {
                           )}
                         </div>
 
-                        {/* Post Image */}
-                        {post.image && (
+                        {/* Post Images */}
+                        {post.images && post.images.length > 0 && (
                           <div className="relative overflow-hidden rounded-lg">
                             <img
-                              src={post.image}
+                              src={post.images[0]}
                               alt={post.title}
                               className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                             />
+                            {post.images.length > 1 && (
+                              <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
+                                +{post.images.length - 1} more
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -421,9 +484,18 @@ const Community = () => {
                               variant="ghost"
                               size="sm"
                               className="space-x-2"
+                              onClick={() => handleLikePost(post._id)}
                             >
-                              <Heart className="w-4 h-4" />
-                              <span>{post.likes}</span>
+                              <Heart
+                                className={`w-4 h-4 ${
+                                  post.likes?.includes(post.currentUserLiked)
+                                    ? "fill-red-500 text-red-500"
+                                    : ""
+                                }`}
+                              />
+                              <span>
+                                {post.likeCount || post.likes?.length || 0}
+                              </span>
                             </Button>
                             <Button
                               variant="ghost"
@@ -431,7 +503,11 @@ const Community = () => {
                               className="space-x-2"
                             >
                               <MessageCircle className="w-4 h-4" />
-                              <span>{post.comments}</span>
+                              <span>
+                                {post.commentCount ||
+                                  post.comments?.length ||
+                                  0}
+                              </span>
                             </Button>
                             <Button
                               variant="ghost"

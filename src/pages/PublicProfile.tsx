@@ -1,10 +1,15 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader2 } from "lucide-react";
+import { userAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Star,
   Users,
@@ -17,64 +22,144 @@ import {
 
 const PublicProfile = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
-  // Mock user data - replace with API call
-  const user = {
-    id: userId,
-    name: "Sarah Chen",
-    username: "@sarahdesigns",
-    bio: "Creative designer specializing in minimalist logos and brand identity. Passionate about clean aesthetics and meaningful design.",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-    coverImage:
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=300&fit=crop",
-    location: "San Francisco, CA",
-    joinDate: "March 2023",
-    rating: 4.9,
-    totalSales: 1250,
-    followers: 8400,
-    following: 342,
-    products: [
-      {
-        id: 1,
-        title: "Modern Minimalist Logo Pack",
-        price: "₹2,299",
-        image: "/src/assets/hero-design-1.jpg",
-        category: "Logos",
-        rating: 4.9,
-        downloads: 234,
-      },
-      {
-        id: 2,
-        title: "Brand Identity Templates",
-        price: "₹3,599",
-        image: "/src/assets/hero-design-2.jpg",
-        category: "Templates",
-        rating: 4.8,
-        downloads: 189,
-      },
-      {
-        id: 3,
-        title: "Icon Set Collection",
-        price: "₹1,499",
-        image: "/src/assets/hero-design-3.jpg",
-        category: "Icons",
-        rating: 5.0,
-        downloads: 312,
-      },
-    ],
+  const [user, setUser] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userId) return;
+
+      try {
+        setIsLoading(true);
+
+        // Fetch user profile
+        const userResponse = await userAPI.getUserProfile(userId);
+        if (userResponse.success) {
+          setUser(userResponse.data.user);
+
+          // Check if current user is following this user
+          if (currentUser && userResponse.data.user.followers) {
+            setIsFollowing(
+              userResponse.data.user.followers.includes(currentUser._id)
+            );
+          }
+        }
+
+        // Fetch user products
+        const productsResponse = await userAPI.getUserProducts(userId, {
+          page: 1,
+          limit: 12,
+        });
+        if (productsResponse.success) {
+          setProducts(productsResponse.data.products);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load user profile",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [userId, currentUser, toast]);
+
+  const handleFollow = async () => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    if (!userId) return;
+
+    try {
+      setFollowLoading(true);
+      const response = await userAPI.toggleFollow(userId);
+
+      if (response.success) {
+        setIsFollowing(response.data.isFollowing);
+        setUser((prev) => ({
+          ...prev,
+          followerCount: response.data.followerCount,
+        }));
+
+        toast({
+          title: response.data.isFollowing ? "Following" : "Unfollowed",
+          description: `You are ${
+            response.data.isFollowing ? "now following" : "no longer following"
+          } ${user?.name}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update follow status",
+        variant: "destructive",
+      });
+    } finally {
+      setFollowLoading(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-muted-foreground">Loading profile...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">User not found</h2>
+            <p className="text-muted-foreground mb-4">
+              The profile you're looking for doesn't exist.
+            </p>
+            <Button onClick={() => navigate("/")}>Go Home</Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       {/* Cover Image */}
       <div className="relative h-80 bg-gradient-to-r from-primary/20 to-secondary/20">
-        <img
-          src={user.coverImage}
-          alt="Cover"
-          className="w-full h-full object-cover"
-        />
+        {user.banner ? (
+          <img
+            src={user.banner}
+            alt="Cover"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-primary/20 to-secondary/20" />
+        )}
         <div className="absolute inset-0 bg-black/20" />
       </div>
 
@@ -92,61 +177,95 @@ const PublicProfile = () => {
             <div className="flex-1 space-y-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold">{user.name}</h1>
-                <p className="text-xl text-primary">{user.username}</p>
+                <p className="text-xl text-primary">
+                  @{user.name.toLowerCase().replace(/\s+/g, "")}
+                </p>
                 <p className="text-muted-foreground mt-2 max-w-2xl">
-                  {user.bio}
+                  {user.bio ||
+                    "Creative professional passionate about design and innovation."}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>{user.location}</span>
-                </div>
+                {user.location && (
+                  <div className="flex items-center space-x-1">
+                    <MapPin className="w-4 h-4" />
+                    <span>{user.location}</span>
+                  </div>
+                )}
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>Joined {user.joinDate}</span>
+                  <span>
+                    Joined{" "}
+                    {new Date(user.joinDate).toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-4 h-4 text-secondary fill-secondary" />
-                  <span className="font-semibold">{user.rating}</span>
-                </div>
+                {user.rating > 0 && (
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-secondary fill-secondary" />
+                    <span className="font-semibold">
+                      {user.rating.toFixed(1)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {user.followers}
+                    {user.followerCount || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Followers</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {user.following}
+                    {user.followingCount || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Following</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {user.totalSales}
+                    {user.totalSales || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Sales</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">
+                    {user.productsCount || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Products</div>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button className="rounded-full">
-                <Users className="w-4 h-4 mr-2" />
-                Follow
-              </Button>
-              <Link to={`/chat/${user.id}`}>
-                <Button variant="outline" className="rounded-full w-full">
+            {currentUser && currentUser._id !== userId && (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  className="rounded-full"
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  variant={isFollowing ? "outline" : "default"}
+                >
+                  {followLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Users className="w-4 h-4 mr-2" />
+                  )}
+                  {isFollowing ? "Unfollow" : "Follow"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-full w-full"
+                  onClick={() => navigate(`/chat/${userId}`)}
+                >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Message
                 </Button>
-              </Link>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -161,55 +280,70 @@ const PublicProfile = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {user.products.map((product) => (
-            <Link key={product.id} to={`/product/${product.id}`}>
-              <Card className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-0">
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <Badge className="absolute top-4 left-4 bg-background text-foreground">
-                      {product.category}
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-4 right-4 bg-background/80 hover:bg-background rounded-full p-2"
-                    >
-                      <Heart className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <div className="p-6 space-y-4">
-                    <h3 className="font-bold text-xl group-hover:text-primary transition-colors">
-                      {product.title}
-                    </h3>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <Star className="h-4 w-4 text-secondary fill-secondary" />
-                          <span className="font-semibold">
-                            {product.rating}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-1 text-muted-foreground">
-                          <Download className="h-4 w-4" />
-                          <span className="text-sm">{product.downloads}</span>
-                        </div>
-                      </div>
-                      <span className="text-2xl font-bold text-primary">
-                        {product.price}
-                      </span>
+          {products.length > 0 ? (
+            products.map((product) => (
+              <Link key={product._id} to={`/product/${product._id}`}>
+                <Card className="group cursor-pointer overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-0">
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={
+                          product.images?.[0] ||
+                          product.image ||
+                          "/api/placeholder/400/300"
+                        }
+                        alt={product.title}
+                        className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <Badge className="absolute top-4 left-4 bg-background text-foreground">
+                        {product.category}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-4 right-4 bg-background/80 hover:bg-background rounded-full p-2"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+
+                    <div className="p-6 space-y-4">
+                      <h3 className="font-bold text-xl group-hover:text-primary transition-colors">
+                        {product.title}
+                      </h3>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-1">
+                            <Star className="h-4 w-4 text-secondary fill-secondary" />
+                            <span className="font-semibold">
+                              {product.rating?.toFixed(1) || "0.0"}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-1 text-muted-foreground">
+                            <Download className="h-4 w-4" />
+                            <span className="text-sm">
+                              {product.downloads || 0}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-2xl font-bold text-primary">
+                          ₹{product.price}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <div className="text-muted-foreground">
+                <h3 className="text-xl font-semibold mb-2">No products yet</h3>
+                <p>{user.name} hasn't uploaded any products yet.</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

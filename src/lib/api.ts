@@ -378,6 +378,25 @@ export const communityAPI = {
     const response = await api.post(`/community/${postId}/comments`, data);
     return response.data;
   },
+
+  toggleCommentLike: async (commentId: string) => {
+    const response = await api.post(`/community/comments/${commentId}/like`);
+    return response.data;
+  },
+
+  getTrendingTopics: async (limit?: number) => {
+    const response = await api.get("/community/trending/topics", {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  getFeaturedUsers: async (limit?: number) => {
+    const response = await api.get("/community/featured/users", {
+      params: { limit },
+    });
+    return response.data;
+  },
 };
 
 // Health check
@@ -709,7 +728,7 @@ export const userAPI = {
   // Get user stats
   getUserStats: async (): Promise<{
     success: boolean;
-    data: { stats: any };
+    data: any;
   }> => {
     const response = await api.get("/users/dashboard/stats");
     return response.data;

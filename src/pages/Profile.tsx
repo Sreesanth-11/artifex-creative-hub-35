@@ -61,7 +61,6 @@ const Profile = () => {
           year: "numeric",
         })
       : "",
-    avatar: user?.avatar || "",
   });
 
   // Update local state when user data changes

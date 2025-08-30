@@ -66,18 +66,96 @@ const Downloads = () => {
     navigate(`/product/${productId}`);
   };
 
-  const handleDownloadItem = (itemId: number) => {
-    console.log("Downloading item:", itemId);
-    // Add download functionality
+  const handleDownloadItem = async (itemId: number) => {
+    try {
+      // Find the item to download
+      const item = downloads.find(download => download.id === itemId);
+      
+      if (!item) {
+        toast({
+          title: "Error",
+          description: "Download item not found",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Download Starting",
+        description: `Preparing ${item.title} for download...`,
+      });
+
+      // If we have real data with orderId, use the API
+      if (item.orderId) {
+        const response = await downloadsAPI.downloadFile(item.orderId);
+
+        // Create blob and download
+        const blob = new Blob([response.data], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${item.title.replace(/[^a-zA-Z0-9]/g, "_")}_download.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast({
+          title: "Download Complete",
+          description: `${item.title} has been downloaded successfully`,
+        });
+
+        // Refresh downloads to update download count
+        const fetchDownloads = async () => {
+          try {
+            const [downloadsResponse, statsResponse] = await Promise.all([
+              downloadsAPI.getUserDownloads({ page: 1, limit: 50 }),
+              downloadsAPI.getUserDownloadStats(),
+            ]);
+
+            setDownloads(downloadsResponse.data.downloads);
+            setStats(statsResponse.data);
+          } catch (error) {
+            console.error("Error fetching downloads:", error);
+          }
+        };
+        fetchDownloads();
+      } else {
+        // For sample data, simulate a download
+        // Create a simple JSON representation of the item
+        const itemData = JSON.stringify(item, null, 2);
+        const blob = new Blob([itemData], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${item.title.replace(/[^a-zA-Z0-9]/g, "_")}_sample.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Download Complete",
+          description: `${item.title} has been downloaded successfully`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download Failed",
+        description: error.response?.data?.message || "Failed to download file",
+        variant: "destructive",
+      });
+    }
   };
 
-  const filteredItems = downloadedItems.filter((item) => {
+  const filteredItems = downloads.filter((item) => {
     const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.designer.toLowerCase().includes(searchQuery.toLowerCase());
+      item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.designer?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       filterCategory === "all" ||
-      item.category.toLowerCase() === filterCategory.toLowerCase();
+      item.category?.toLowerCase() === filterCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 
@@ -210,7 +288,7 @@ const Downloads = () => {
             ))}
           </div>
 
-          {filteredItems.length === 0 && downloadedItems.length > 0 && (
+          {filteredItems.length === 0 && downloads.length > 0 && (
             <div className="text-center py-20">
               <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">No results found</h3>
@@ -229,7 +307,7 @@ const Downloads = () => {
             </div>
           )}
 
-          {downloadedItems.length === 0 && (
+          {downloads.length === 0 && (
             <div className="text-center py-20">
               <Download className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">No downloads yet</h3>
