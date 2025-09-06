@@ -3,21 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
-    "start": "npm run start:backend",
-    "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-
-    "dev:frontend": "npm run dev --prefix ./",
-    "dev:backend": "npm run dev --prefix backend",
-
+   "scripts": {
     "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "npm install && npm run build --prefix ./",
-    "build:backend": "npm install --prefix backend && npm run build --prefix backend",
-
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-
-    "start:backend": "npm run start --prefix backend"
+    "build:frontend": "cd ./ && npm install && npm run build",  
+    "build:backend": "cd backend && npm install && npm run build",
+    "start": "cd backend && npm run start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
