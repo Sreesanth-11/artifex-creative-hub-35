@@ -19,17 +19,31 @@ import {
   LogOut,
   ShoppingCart,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, isAuthenticated, logout } = useAuth();
   const { cartCount } = useCart();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Navigate to shop page with search query
+      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
   };
 
   return (
@@ -47,13 +61,15 @@ const Header = () => {
 
           {/* Search Bar - Desktop */}
           <div className="hidden lg:flex flex-1 max-w-md mx-12">
-            <div className="relative w-full">
+            <form onSubmit={handleSearch} className="relative w-full">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="Search designs..."
+                value={searchQuery}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
                 className="pl-12 h-12 bg-muted border-0 focus:ring-2 focus:ring-primary/20 text-foreground rounded-full"
               />
-            </div>
+            </form>
           </div>
 
           {/* Navigation - Desktop */}
@@ -196,13 +212,15 @@ const Header = () => {
           <div className="md:hidden py-6 border-t border-border">
             <div className="space-y-6">
               {/* Mobile Search */}
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   placeholder="Search designs..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
                   className="pl-12 h-12 bg-muted border-0 rounded-full"
                 />
-              </div>
+              </form>
 
               {/* Mobile Navigation */}
               <nav className="space-y-4">

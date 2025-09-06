@@ -335,6 +335,172 @@ export const getUserProducts = async (
   }
 };
 
+// Get user's following
+export const getUserFollowing = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | Response> => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    // If no userId provided, get current user's following
+    const targetUserId = userId || currentUserId;
+
+    if (!targetUserId) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Get following with pagination
+    const following = await User.find({
+      _id: { $in: user.following || [] },
+    })
+      .select("name avatar bio location isVerified followerCount followingCount")
+      .skip(skip)
+      .limit(limit);
+
+    const totalFollowing = user.following?.length || 0;
+
+    // Check if current user is following each person (for mutual following)
+    const followingWithStatus = await Promise.all(
+      following.map(async (person) => {
+        const isFollowing = currentUserId
+          ? (await User.findById(currentUserId))?.following?.includes(person._id) || false
+          : false;
+
+        // Get follower counts dynamically
+        const followerCount = person.followers?.length || 0;
+        const followingCount = person.following?.length || 0;
+
+        return {
+          id: person._id,
+          name: person.name,
+          avatar: person.avatar || "",
+          bio: person.bio || "",
+          location: person.location || "",
+          isVerified: person.isVerified,
+          followerCount,
+          followingCount,
+          isFollowing,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        following: followingWithStatus,
+        pagination: {
+          page,
+          limit,
+          total: totalFollowing,
+          pages: Math.ceil(totalFollowing / limit),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get user's followers
+export const getUserFollowers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | Response> => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user?.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    // If no userId provided, get current user's followers
+    const targetUserId = userId || currentUserId;
+
+    if (!targetUserId) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Get followers with pagination
+    const followers = await User.find({
+      _id: { $in: user.followers || [] },
+    })
+      .select("name avatar bio location isVerified followerCount followingCount")
+      .skip(skip)
+      .limit(limit);
+
+    const totalFollowers = user.followers?.length || 0;
+
+    // Check if current user is following each follower
+    const followersWithStatus = await Promise.all(
+      followers.map(async (follower) => {
+        const isFollowing = currentUserId
+          ? (await User.findById(currentUserId))?.following?.includes(follower._id) || false
+          : false;
+
+        // Get follower counts dynamically
+        const followerCount = follower.followers?.length || 0;
+        const followingCount = follower.following?.length || 0;
+
+        return {
+          id: follower._id,
+          name: follower.name,
+          avatar: follower.avatar || "",
+          bio: follower.bio || "",
+          location: follower.location || "",
+          isVerified: follower.isVerified,
+          followerCount,
+          followingCount,
+          isFollowing,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        followers: followersWithStatus,
+        pagination: {
+          page,
+          limit,
+          total: totalFollowers,
+          pages: Math.ceil(totalFollowers / limit),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Get user's dashboard stats
 export const getUserStats = async (
   req: Request,

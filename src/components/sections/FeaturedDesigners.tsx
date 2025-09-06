@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,87 +12,33 @@ import {
   Instagram,
   Award,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
+import { communityAPI } from "@/lib/api";
 
 const FeaturedDesigners = () => {
-  const featuredDesigners = [
-    {
-      id: 1,
-      name: "Sarah Chen",
-      title: "Brand Identity Specialist",
-      avatar: "/api/placeholder/80/80",
-      location: "San Francisco, CA",
-      rating: 4.9,
-      followers: "12.4k",
-      downloads: "45.2k",
-      portfolio: 89,
-      verified: true,
-      social: {
-        instagram: "@sarahchen_design",
-        dribbble: "sarahchen",
-        behance: "sarahchen",
-      },
-      specialties: ["Logos", "Branding", "Typography"],
-      recent_work: ["/api/placeholder/100/100", "/api/placeholder/100/100", "/api/placeholder/100/100"],
-    },
-    {
-      id: 2,
-      name: "Marcus Johnson",
-      title: "UI/UX Designer",
-      avatar: "/api/placeholder/80/80",
-      location: "New York, NY",
-      rating: 4.8,
-      followers: "8.9k",
-      downloads: "32.1k",
-      portfolio: 67,
-      verified: true,
-      social: {
-        instagram: "@marcusux",
-        dribbble: "marcusj",
-        behance: "marcusjohnson",
-      },
-      specialties: ["UI Design", "Mobile Apps", "Web Design"],
-      recent_work: ["/api/placeholder/100/100", "/api/placeholder/100/100", "/api/placeholder/100/100"],
-    },
-    {
-      id: 3,
-      name: "Emma Thompson",
-      title: "Illustration Artist",
-      avatar: "/api/placeholder/80/80",
-      location: "London, UK",
-      rating: 5.0,
-      followers: "15.7k",
-      downloads: "67.8k",
-      portfolio: 124,
-      verified: true,
-      social: {
-        instagram: "@emmaillustrates",
-        dribbble: "emmathompson",
-        behance: "emmathompson",
-      },
-      specialties: ["Illustrations", "Digital Art", "Character Design"],
-      recent_work: ["/api/placeholder/100/100", "/api/placeholder/100/100", "/api/placeholder/100/100"],
-    },
-    {
-      id: 4,
-      name: "Alex Rodriguez",
-      title: "Motion Graphics Designer",
-      avatar: "/api/placeholder/80/80",
-      location: "Barcelona, Spain",
-      rating: 4.7,
-      followers: "6.3k",
-      downloads: "28.5k",
-      portfolio: 52,
-      verified: false,
-      social: {
-        instagram: "@alexmotion",
-        dribbble: "alexrodriguez",
-        behance: "alexrodriguez",
-      },
-      specialties: ["Motion Graphics", "Animation", "Video"],
-      recent_work: ["/api/placeholder/100/100", "/api/placeholder/100/100", "/api/placeholder/100/100"],
-    },
-  ];
+  const [featuredDesigners, setFeaturedDesigners] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedDesigners = async () => {
+      try {
+        setIsLoading(true);
+        const response = await communityAPI.getFeaturedUsers(4);
+        if (response.success) {
+          setFeaturedDesigners(response.data.users);
+        }
+      } catch (error) {
+        console.error("Error fetching featured designers:", error);
+        // Fallback to empty array if API fails
+        setFeaturedDesigners([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedDesigners();
+  }, []);
 
   return (
     <section className="py-20 bg-muted/30">
@@ -110,111 +57,110 @@ const FeaturedDesigners = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {featuredDesigners.map((designer) => (
-            <Link key={designer.id} to={`/profile/${designer.id}`}>
-              <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1">
-              <CardContent className="p-6 text-center space-y-4">
-                {/* Avatar & Verification */}
-                <div className="relative mx-auto w-20 h-20">
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage src={designer.avatar} />
-                    <AvatarFallback className="text-lg">{designer.name[0]}</AvatarFallback>
-                  </Avatar>
-                  {designer.verified && (
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-accent rounded-full flex items-center justify-center">
-                      <Award className="w-3 h-3 text-accent-foreground" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Designer Info */}
-                <div className="space-y-1">
-                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                    {designer.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{designer.title}</p>
-                  <div className="flex items-center justify-center space-x-1 text-xs text-muted-foreground">
-                    <MapPin className="w-3 h-3" />
-                    <span>{designer.location}</span>
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="animate-pulse">
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="relative mx-auto w-20 h-20">
+                    <div className="w-20 h-20 bg-muted rounded-full"></div>
                   </div>
-                </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-24 mx-auto"></div>
+                    <div className="h-3 bg-muted rounded w-32 mx-auto"></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="h-8 bg-muted rounded"></div>
+                    <div className="h-8 bg-muted rounded"></div>
+                    <div className="h-8 bg-muted rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : featuredDesigners.length > 0 ? (
+            featuredDesigners.map((designer) => (
+              <Link key={designer._id} to={`/profile/${designer._id}`}>
+                <Card className="group cursor-pointer bg-card border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-1">
+                <CardContent className="p-6 text-center space-y-4">
+                  {/* Avatar & Verification */}
+                  <div className="relative mx-auto w-20 h-20">
+                    <Avatar className="w-20 h-20">
+                      <AvatarImage src={designer.avatar} />
+                      <AvatarFallback className="text-lg">{designer.name?.[0]}</AvatarFallback>
+                    </Avatar>
+                    {designer.isVerified && (
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-accent rounded-full flex items-center justify-center">
+                        <Award className="w-3 h-3 text-accent-foreground" />
+                      </div>
+                    )}
+                  </div>
 
-                {/* Rating & Stats */}
-                <div className="grid grid-cols-3 gap-2 text-center">
+                  {/* Designer Info */}
                   <div className="space-y-1">
-                    <div className="flex items-center justify-center space-x-1">
-                      <Star className="w-3 h-3 text-secondary fill-secondary" />
-                      <span className="text-sm font-medium">{designer.rating}</span>
+                    <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                      {designer.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {designer.bio || "Creative designer"}
+                    </p>
+                    <div className="flex items-center justify-center space-x-1 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3" />
+                      <span>{designer.location || "Location not set"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">Rating</p>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center space-x-1">
-                      <Users className="w-3 h-3 text-accent" />
-                      <span className="text-sm font-medium">{designer.followers}</span>
+
+                  {/* Rating & Stats */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center space-x-1">
+                        <Star className="w-3 h-3 text-secondary fill-secondary" />
+                        <span className="text-sm font-medium">
+                          {designer.rating?.toFixed(1) || "0.0"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Rating</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Followers</p>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center space-x-1">
-                      <Download className="w-3 h-3 text-primary" />
-                      <span className="text-sm font-medium">{designer.downloads}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center space-x-1">
+                        <Users className="w-3 h-3 text-accent" />
+                        <span className="text-sm font-medium">
+                          {designer.followerCount || 0}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Followers</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Downloads</p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center space-x-1">
+                        <Download className="w-3 h-3 text-primary" />
+                        <span className="text-sm font-medium">
+                          {designer.postCount || 0}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Posts</p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Specialties */}
-                <div className="flex flex-wrap gap-1 justify-center">
-                  {designer.specialties.slice(0, 2).map((specialty, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {specialty}
-                    </Badge>
-                  ))}
-                  {designer.specialties.length > 2 && (
-                    <Badge variant="secondary" className="text-xs">
-                      +{designer.specialties.length - 2}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Recent Work Preview */}
-                <div className="flex justify-center space-x-1">
-                  {designer.recent_work.map((work, index) => (
-                    <img
-                      key={index}
-                      src={work}
-                      alt={`Recent work ${index + 1}`}
-                      className="w-8 h-8 rounded object-cover"
-                    />
-                  ))}
-                </div>
-
-                {/* Social Links */}
-                <div className="flex justify-center space-x-2">
-                  <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-primary">
-                    <Instagram className="w-3 h-3" />
+                  {/* Follow Button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  >
+                    View Portfolio
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-primary">
-                    <ExternalLink className="w-3 h-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-primary">
-                    <ExternalLink className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                {/* Follow Button */}
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  View Portfolio
-                </Button>
-              </CardContent>
-            </Card>
-            </Link>
-          ))}
+                </CardContent>
+              </Card>
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <Award className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No featured designers yet</h3>
+              <p className="text-muted-foreground">
+                Featured designers will appear here soon.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="text-center">

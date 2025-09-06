@@ -33,7 +33,7 @@ import {
   SlidersHorizontal,
   Loader2,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { productAPI, Product } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,7 +50,16 @@ const Shop = () => {
   const [categories, setCategories] = useState<
     Array<{ name: string; count: number }>
   >([]);
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Read search query from URL parameters
+  useEffect(() => {
+    const searchParam = searchParams.get("search");
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   // Fetch categories from API
   useEffect(() => {
@@ -237,6 +246,8 @@ const Shop = () => {
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   placeholder="Search designs, templates, icons..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 pr-4 h-12 text-lg bg-background border-border"
                 />
               </div>

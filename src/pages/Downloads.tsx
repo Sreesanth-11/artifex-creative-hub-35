@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { downloadsAPI } from "@/lib/api";
+import { downloadsAPI, orderAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const Downloads = () => {
@@ -40,13 +40,35 @@ const Downloads = () => {
     const fetchDownloads = async () => {
       try {
         setIsLoading(true);
-        const [downloadsResponse, statsResponse] = await Promise.all([
-          downloadsAPI.getUserDownloads({ page: 1, limit: 50 }),
-          downloadsAPI.getUserDownloadStats(),
-        ]);
+        const ordersResponse = await orderAPI.getUserOrders({ page: 1, limit: 50 });
 
-        setDownloads(downloadsResponse.data.downloads);
-        setStats(statsResponse.data);
+        // Transform orders data to match the expected format
+        const transformedDownloads = ordersResponse.data.orders.map((order: any) => ({
+          id: order._id,
+          title: order.product?.title || "Unknown Product",
+          image: order.product?.images?.[0] || "/api/placeholder/300/200",
+          category: order.product?.category || "General",
+          designer: order.product?.seller?.name || "Unknown Seller",
+          rating: order.product?.rating || 4.5,
+          price: order.amount || 0,
+          downloadDate: new Date(order.createdAt).toISOString(),
+          orderId: order._id,
+          product: order.product,
+          purchaseDate: new Date(order.createdAt).toLocaleDateString(),
+          downloadCount: order.downloadCount || 0,
+          maxDownloads: order.maxDownloads || 5,
+          canDownload: order.status === "completed" && (order.downloadCount || 0) < (order.maxDownloads || 5),
+        }));
+
+        setDownloads(transformedDownloads);
+
+        // Set basic stats
+        setStats({
+          totalDownloads: ordersResponse.data.orders.length,
+          downloadsThisMonth: ordersResponse.data.orders.filter((order: any) =>
+            new Date(order.createdAt).getMonth() === new Date().getMonth()
+          ).length,
+        });
       } catch (error) {
         console.error("Error fetching downloads:", error);
         toast({
@@ -85,60 +107,62 @@ const Downloads = () => {
         description: `Preparing ${item.title} for download...`,
       });
 
-      // If we have real data with orderId, use the API
-      if (item.orderId) {
-        const response = await downloadsAPI.downloadFile(item.orderId);
+      // Download file using order ID
+      const response = await downloadsAPI.downloadFile(item._id);
 
-        // Create blob and download
-        const blob = new Blob([response.data], { type: "application/json" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${item.title.replace(/[^a-zA-Z0-9]/g, "_")}_download.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+      // Create blob and download
+      const blob = new Blob([response.data], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${item.title.replace(/[^a-zA-Z0-9]/g, "_")}_download.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-        toast({
-          title: "Download Complete",
-          description: `${item.title} has been downloaded successfully`,
-        });
+      toast({
+        title: "Download Complete",
+        description: `${item.title} has been downloaded successfully`,
+      });
 
-        // Refresh downloads to update download count
-        const fetchDownloads = async () => {
-          try {
-            const [downloadsResponse, statsResponse] = await Promise.all([
-              downloadsAPI.getUserDownloads({ page: 1, limit: 50 }),
-              downloadsAPI.getUserDownloadStats(),
-            ]);
+      // Refresh downloads to update download count
+      const fetchDownloads = async () => {
+        try {
+          const ordersResponse = await orderAPI.getUserOrders({ page: 1, limit: 50 });
 
-            setDownloads(downloadsResponse.data.downloads);
-            setStats(statsResponse.data);
-          } catch (error) {
-            console.error("Error fetching downloads:", error);
-          }
-        };
-        fetchDownloads();
-      } else {
-        // For sample data, simulate a download
-        // Create a simple JSON representation of the item
-        const itemData = JSON.stringify(item, null, 2);
-        const blob = new Blob([itemData], { type: "application/json" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${item.title.replace(/[^a-zA-Z0-9]/g, "_")}_sample.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Download Complete",
-          description: `${item.title} has been downloaded successfully`,
-        });
-      }
+          // Transform orders data to match the expected format
+          const transformedDownloads = ordersResponse.data.orders.map((order: any) => ({
+            id: order._id,
+            title: order.product?.title || "Unknown Product",
+            image: order.product?.images?.[0] || "/api/placeholder/300/200",
+            category: order.product?.category || "General",
+            designer: order.product?.seller?.name || "Unknown Seller",
+            rating: order.product?.rating || 4.5,
+            price: order.amount || 0,
+            downloadDate: new Date(order.createdAt).toISOString(),
+            orderId: order._id,
+            product: order.product,
+            purchaseDate: new Date(order.createdAt).toLocaleDateString(),
+            downloadCount: order.downloadCount || 0,
+            maxDownloads: order.maxDownloads || 5,
+            canDownload: order.status === "completed" && (order.downloadCount || 0) < (order.maxDownloads || 5),
+          }));
+
+          setDownloads(transformedDownloads);
+
+          // Set basic stats
+          setStats({
+            totalDownloads: ordersResponse.data.orders.length,
+            downloadsThisMonth: ordersResponse.data.orders.filter((order: any) =>
+              new Date(order.createdAt).getMonth() === new Date().getMonth()
+            ).length,
+          });
+        } catch (error) {
+          console.error("Error fetching downloads:", error);
+        }
+      };
+      fetchDownloads();
     } catch (error: any) {
       console.error("Download error:", error);
       toast({

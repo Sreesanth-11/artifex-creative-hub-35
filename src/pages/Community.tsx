@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/hover-card";
 import { ProfileHoverCard } from "@/components/ui/profile-hover-card";
 import { ShareWorkDialog } from "@/components/ui/share-work-dialog";
-import { communityAPI } from "@/lib/api";
+import { communityAPI, userAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Heart,
   MessageCircle,
@@ -39,8 +40,12 @@ const Community = () => {
   const [shareWorkDialogOpen, setShareWorkDialogOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [userFollowing, setUserFollowing] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -68,6 +73,24 @@ const Community = () => {
 
     fetchPosts();
   }, [activeTab, searchQuery, toast]);
+
+  // Fetch user's following list for filtering
+  useEffect(() => {
+    const fetchUserFollowing = async () => {
+      if (!user?._id) return;
+
+      try {
+        const response = await userAPI.getUserFollowing(user._id, { limit: 100 });
+        if (response.success) {
+          setUserFollowing(response.data.following);
+        }
+      } catch (error) {
+        console.error("Error fetching following list:", error);
+      }
+    };
+
+    fetchUserFollowing();
+  }, [user?._id]);
 
   const handleLikePost = async (postId: string) => {
     try {
@@ -100,6 +123,93 @@ const Community = () => {
     }
   };
 
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter some content for your post",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingPost(true);
+      const response = await communityAPI.createPost({
+        title: "New Post", // You might want to add a title input
+        content: newPostContent,
+        category: "general",
+        tags: [],
+      });
+
+      if (response.success) {
+        // Add the new post to the beginning of the posts list
+        setPosts((prevPosts) => [response.data.post, ...prevPosts]);
+        setNewPostContent("");
+
+        toast({
+          title: "Success",
+          description: "Your post has been created successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const handleFollowUser = async (userId: string, userName: string) => {
+    try {
+      const response = await userAPI.toggleFollow(userId);
+
+      if (response.success) {
+        // Update the featured designers list
+        setFeaturedDesigners((prevDesigners) =>
+          prevDesigners.map((designer) =>
+            designer._id === userId
+              ? { ...designer, isFollowing: response.data.isFollowing }
+              : designer
+          )
+        );
+
+        // Update posts to reflect follow status
+        setPosts((prevPosts) =>
+          prevPosts.map((post) =>
+            post.author?._id === userId
+              ? {
+                  ...post,
+                  author: {
+                    ...post.author,
+                    isFollowing: response.data.isFollowing,
+                  },
+                }
+              : post
+          )
+        );
+
+        toast({
+          title: response.data.isFollowing ? "Following" : "Unfollowed",
+          description: response.data.isFollowing
+            ? `You are now following ${userName}`
+            : `You unfollowed ${userName}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error following user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to follow user",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Use real posts from API instead of dummy data
 
   const getFilteredPosts = () => {
@@ -120,11 +230,14 @@ const Community = () => {
       );
     }
 
-    // Filter by tab (simplified since we don't have all the dummy data fields)
+    // Filter by tab
     switch (activeTab) {
       case "following":
-        // In a real app, this would filter based on user's following list
-        return filteredPosts;
+        // Filter posts to only show posts from users the current user follows
+        const followingIds = userFollowing.map(user => user.id);
+        return filteredPosts.filter((post) =>
+          post.author?._id && followingIds.includes(post.author._id)
+        );
       case "popular":
         return filteredPosts
           .filter((post) => (post.likes?.length || 0) > 5)
@@ -294,10 +407,11 @@ const Community = () => {
                           </div>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant={designer.isFollowing ? "default" : "outline"}
                             className="text-xs"
+                            onClick={() => handleFollowUser(designer._id, designer.name)}
                           >
-                            Follow
+                            {designer.isFollowing ? "Following" : "Follow"}
                           </Button>
                         </div>
                       ))
@@ -338,6 +452,14 @@ const Community = () => {
                           <Input
                             placeholder="Share your latest design or ask a question..."
                             className="mb-4 bg-background border-border"
+                            value={newPostContent}
+                            onChange={(e) => setNewPostContent(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleCreatePost();
+                              }
+                            }}
                           />
                           <div className="flex justify-between items-center">
                             <div className="flex space-x-2">
@@ -350,8 +472,20 @@ const Community = () => {
                                 Poll
                               </Button>
                             </div>
-                            <Button size="sm" className="bg-gradient-primary">
-                              Post
+                            <Button
+                              size="sm"
+                              className="bg-gradient-primary"
+                              onClick={handleCreatePost}
+                              disabled={isCreatingPost || !newPostContent.trim()}
+                            >
+                              {isCreatingPost ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  Posting...
+                                </>
+                              ) : (
+                                "Post"
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -415,9 +549,16 @@ const Community = () => {
                                     likes={post.likes?.length || "0"}
                                     downloads="0"
                                     verified={post.author?.verified || false}
-                                    isFollowing={false}
-                                    onFollow={() => console.log("Follow user")}
-                                    onMessage={() => navigate("/chat")}
+                                    isFollowing={post.author?.isFollowing || false}
+                                    onFollow={() =>
+                                      handleFollowUser(
+                                        post.author?._id,
+                                        post.author?.name
+                                      )
+                                    }
+                                    onMessage={() =>
+                                      navigate(`/chat/${post.author?._id}`)
+                                    }
                                   />
                                 </HoverCardContent>
                               </HoverCard>
@@ -429,9 +570,25 @@ const Community = () => {
                               {new Date(post.createdAt).toLocaleDateString()}
                             </p>
                           </div>
-                          <Button size="icon" variant="ghost">
-                            <Bookmark className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant={
+                                post.author?.isFollowing ? "default" : "outline"
+                              }
+                              onClick={() =>
+                                handleFollowUser(
+                                  post.author?._id,
+                                  post.author?.name
+                                )
+                              }
+                            >
+                              {post.author?.isFollowing ? "Following" : "Follow"}
+                            </Button>
+                            <Button size="icon" variant="ghost">
+                              <Bookmark className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Post Content */}
@@ -501,6 +658,9 @@ const Community = () => {
                               variant="ghost"
                               size="sm"
                               className="space-x-2"
+                              onClick={() =>
+                                navigate(`/chat/${post.author?._id}`)
+                              }
                             >
                               <MessageCircle className="w-4 h-4" />
                               <span>

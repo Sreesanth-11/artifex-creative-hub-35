@@ -6,3 +6,4 @@ export { default as Order } from "./Order";
 export { default as Review } from "./Review";
 export { default as Download } from "./Download";
 export { default as Message } from "./Message";
+export { Post, Comment } from "./Community";

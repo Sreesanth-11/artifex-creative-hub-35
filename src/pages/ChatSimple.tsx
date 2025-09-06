@@ -73,47 +73,57 @@ const ChatSimple = () => {
   useEffect(() => {
     if (!user?._id) return;
 
-    const s = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5001");
+    const s = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000");
     setSocket(s);
     s.emit("join", user._id);
-  
+
     // Handle incoming messages
     s.on("newMessage", (messageData: any) => {
-    // Check if message already exists to prevent duplicates
-    setMessages((prev) => {
-      // Check if this message already exists in our messages array
-      const messageExists = prev.some(m => m.id === messageData.id || m.tempId === messageData.tempId);
-      if (messageExists) return prev;
-      
-      const newMessage: SimpleMessage = {
-        id: messageData.id,
-        senderId: messageData.senderId,
-        content: messageData.content,
-        timestamp: new Date(messageData.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isMe: false,
-      };
-      return [...prev, newMessage];
-    });
-  });
+      // Check if message already exists to prevent duplicates
+      setMessages((prev) => {
+        // Check if this message already exists in our messages array
+        const messageExists = prev.some(m => m.id === messageData.id || m.tempId === messageData.tempId);
+        if (messageExists) return prev;
 
-  // Handle message sent confirmation
-  s.on("messageSent", (messageData: any) => {
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.tempId === messageData.tempId
-          ? { ...m, id: messageData.id, sending: false }
-          : m
-      )
-    );
-  });
+        const newMessage: SimpleMessage = {
+          id: messageData.id,
+          senderId: messageData.senderId,
+          content: messageData.content,
+          timestamp: new Date(messageData.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isMe: false,
+        };
+        return [...prev, newMessage];
+      });
+    });
+
+    // Handle message sent confirmation
+    s.on("messageSent", (messageData: any) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.tempId === messageData.tempId
+            ? { ...m, id: messageData.id, sending: false }
+            : m
+        )
+      );
+    });
+
+    // Handle message errors
+    s.on("messageError", (errorData: any) => {
+      console.error("Message error:", errorData);
+      toast({
+        title: "Message Error",
+        description: errorData.error || "Failed to send message",
+        variant: "destructive",
+      });
+    });
 
     return () => {
       s.close();
     };
-  }, [user?._id]);
+  }, [user?._id, toast]);
 
   // Load users for chat list
   useEffect(() => {
@@ -153,6 +163,8 @@ const ChatSimple = () => {
               isMe: msg.isMe,
             }));
           setMessages(transformedMessages);
+        } else {
+          console.error("Failed to load messages:", response);
         }
     
         // Get current chat user info

@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: artifex-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: artifex-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: artifex-frontend
+          property: url
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+  - type: web
+    name: artifex-frontend
+    env: static
+    plan: free
+    region: oregon
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: artifex-backend
+          property: url
+
+databases:
+  - name: artifex-db
+    databaseName: artifex
+    plan: free

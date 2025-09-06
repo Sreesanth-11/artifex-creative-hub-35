@@ -7,6 +7,8 @@ import {
   toggleFollow,
   getUserProducts,
   getUserStats,
+  getUserFollowers,
+  getUserFollowing,
   uploadAvatar,
   uploadBanner,
 } from "../controllers/userController";
@@ -50,6 +52,8 @@ const changePasswordValidation = [
 // Public routes
 router.get("/:userId", optionalAuth, getUserProfile);
 router.get("/:userId/products", getUserProducts);
+router.get("/:userId/followers", optionalAuth, getUserFollowers);
+router.get("/:userId/following", optionalAuth, getUserFollowing);
 
 // Protected routes
 router.get("/", protect, getUserProfile); // Get current user profile

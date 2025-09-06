@@ -1,9 +1,22 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowRight, Play } from "lucide-react";
 
 const HeroSection = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate("/shop");
+    }
+  };
+
   return (
     <section className="pt-32 pb-20 px-6">
       <div className="container mx-auto text-center">
@@ -23,21 +36,22 @@ const HeroSection = () => {
 
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="What are you looking for?"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-14 pr-32 h-16 text-lg bg-muted border-0 focus:ring-2 focus:ring-primary/20 rounded-full"
               />
-              <Link to="/shop">
-                <Button
-                  size="lg"
-                  className="absolute right-2 top-2 bottom-2 bg-primary hover:bg-primary/90 rounded-full px-8"
-                >
-                  Search
-                </Button>
-              </Link>
-            </div>
+              <Button
+                type="submit"
+                size="lg"
+                className="absolute right-2 top-2 bottom-2 bg-primary hover:bg-primary/90 rounded-full px-8"
+              >
+                Search
+              </Button>
+            </form>
           </div>
 
           {/* CTA Buttons */}

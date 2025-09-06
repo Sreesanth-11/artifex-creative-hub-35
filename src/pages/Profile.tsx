@@ -43,6 +43,7 @@ const Profile = () => {
   const [userProducts, setUserProducts] = useState([]);
   const [userOrders, setUserOrders] = useState([]);
   const [userStats, setUserStats] = useState(null);
+  const [userFollowers, setUserFollowers] = useState([]);
   const navigate = useNavigate();
   const { user, logout, updateUser, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -113,6 +114,12 @@ const Profile = () => {
         // Fetch user stats
         const statsResponse = await userAPI.getUserStats();
         setUserStats(statsResponse.data.stats);
+
+        // Fetch user followers
+        const followersResponse = await userAPI.getUserFollowers(user._id, {
+          limit: 20,
+        });
+        setUserFollowers(followersResponse.data.followers || []);
       } catch (error) {
         console.error("Error fetching profile data:", error);
         toast({
@@ -144,15 +151,8 @@ const Profile = () => {
   // Use real products data or empty array
   const products = userProducts;
 
-  const followers = Array.from({ length: 12 }, (_, i) => ({
-    id: i + 1,
-    name: `Designer ${i + 1}`,
-    avatar: `/api/placeholder/40/40`,
-    specialty: ["UI/UX", "Branding", "Illustration", "Photography"][
-      Math.floor(Math.random() * 4)
-    ],
-    isFollowing: Math.random() > 0.5,
-  }));
+  // Use real followers data from API
+  const followers = userFollowers;
 
   const handleDownload = async (orderId: string, productTitle: string) => {
     try {
@@ -368,6 +368,15 @@ const Profile = () => {
 
   const handleStartChat = (userId: number) => {
     navigate(`/chat/${userId}`);
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const ordersResponse = await orderAPI.getUserOrders({ limit: 10 });
+      setUserOrders(ordersResponse.data.orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
   };
 
   return (
@@ -786,43 +795,57 @@ const Profile = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {followers.map((follower) => (
-                    <Card key={follower.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-3">
-                          <Avatar>
-                            <AvatarImage src={follower.avatar} />
-                            <AvatarFallback>{follower.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate">
-                              {follower.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {follower.specialty}
-                            </p>
+                  {followers.length > 0 ? (
+                    followers.map((follower) => (
+                      <Card key={follower.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <Avatar>
+                              <AvatarImage src={follower.avatar} />
+                              <AvatarFallback>{follower.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium truncate">
+                                {follower.name}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {follower.bio || "Creative designer"}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Users className="w-3 h-3" />
+                                <span>{follower.followerCount} followers</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant={
+                                  follower.isFollowing ? "outline" : "default"
+                                }
+                              >
+                                {follower.isFollowing ? "Following" : "Follow"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStartChat(follower.id)}
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant={
-                                follower.isFollowing ? "outline" : "default"
-                              }
-                            >
-                              {follower.isFollowing ? "Following" : "Follow"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStartChat(follower.id)}
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No followers yet</h3>
+                      <p className="text-muted-foreground">
+                        When people follow you, they'll appear here.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -872,47 +895,6 @@ const Profile = () => {
                           </div>
                         </div>
 
-                        {/* Banner Image Upload */}
-                        <div className="space-y-2">
-                          <Label>Banner Image</Label>
-                          <div className="space-y-2">
-                            {userData.banner && (
-                              <div className="w-full h-32 rounded-lg overflow-hidden bg-muted">
-                                <img
-                                  src={userData.banner}
-                                  alt="Banner"
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleBannerUpload}
-                                className="hidden"
-                                id="banner-upload"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={isUploadingBanner}
-                                onClick={() =>
-                                  document
-                                    .getElementById("banner-upload")
-                                    ?.click()
-                                }
-                              >
-                                {isUploadingBanner
-                                  ? "Uploading..."
-                                  : userData.banner
-                                  ? "Change Banner"
-                                  : "Add Banner"}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>

@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -42,6 +42,9 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  bio?: string;
+  location?: string;
+  website?: string;
   avatar?: string;
   role: string;
   isVerified: boolean;
@@ -722,6 +725,38 @@ export const userAPI = {
     data: { products: any[]; pagination: any };
   }> => {
     const response = await api.get(`/users/${userId}/products`, { params });
+    return response.data;
+  },
+
+  // Get user followers
+  getUserFollowers: async (
+    userId?: string,
+    params?: { page?: number; limit?: number }
+  ): Promise<{
+    success: boolean;
+    data: {
+      followers: any[];
+      pagination: any;
+    };
+  }> => {
+    const url = userId ? `/users/${userId}/followers` : "/users/followers";
+    const response = await api.get(url, { params });
+    return response.data;
+  },
+
+  // Get user following
+  getUserFollowing: async (
+    userId?: string,
+    params?: { page?: number; limit?: number }
+  ): Promise<{
+    success: boolean;
+    data: {
+      following: any[];
+      pagination: any;
+    };
+  }> => {
+    const url = userId ? `/users/${userId}/following` : "/users/following";
+    const response = await api.get(url, { params });
     return response.data;
   },
 
