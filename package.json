@@ -4,14 +4,20 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "npx concurrently \"npm run dev\" \"npm run dev --prefix backend\"",
-    "dev": "npx vite",
+    "start": "npm run start:backend",
+    "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+
+    "dev:frontend": "npm run dev --prefix ./",
+    "dev:backend": "npm run dev --prefix backend",
+
     "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "vite build",
-    "build:backend": "npm run build --prefix backend",
-    "build:dev": "vite build --mode development",
+    "build:frontend": "npm install && npm run build --prefix ./",
+    "build:backend": "npm install --prefix backend && npm run build --prefix backend",
+
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+
+    "start:backend": "npm run start --prefix backend"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
