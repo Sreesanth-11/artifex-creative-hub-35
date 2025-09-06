@@ -34,9 +34,8 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [process.env.FRONTEND_URL || "http://localhost:5173"],
+    origin: ["http://localhost:8080", "http://localhost:8081"],
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
@@ -55,30 +54,13 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
-        connectSrc: [
-          "'self'",
-          process.env.FRONTEND_URL || "http://localhost:5173",
-        ],
-        imgSrc: ["'self'", "data:", "https:"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        fontSrc: ["'self'", "https:", "data:"],
-      },
-    },
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
-app.use(compression());
-app.use(morgan("combined"));
-app.use(limiter);
+app.use(helmet()); // Security headers
+app.use(compression()); // Compress responses
+app.use(morgan("combined")); // Logging
+app.use(limiter); // Rate limiting
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL || "http://localhost:5173"],
+    origin: ["http://localhost:8080", "http://localhost:8081"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -91,14 +73,18 @@ app.use(cookieParser());
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
+  // Serve frontend files
   app.use(express.static(path.join(__dirname, "../../dist")));
 
+  // For any other route, serve the index.html
   app.get("*", (req, res) => {
     res.sendFile(path.resolve(__dirname, "../../dist", "index.html"));
   });
 } else {
+  // Serve static files from uploads directory in development
   app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+  // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.status(200).json({
       success: true,
@@ -106,6 +92,15 @@ if (process.env.NODE_ENV === "production") {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
     });
+  });
+
+  // Placeholder image service
+  app.get("/api/placeholder/:width/:height", (req, res) => {
+    const { width, height } = req.params;
+    const color = req.query.color || "cccccc";
+    const textColor = req.query.text || "666666";
+    const url = `https://via.placeholder.com/${width}x${height}/${color}/${textColor}`;
+    res.redirect(url);
   });
 }
 
@@ -120,20 +115,23 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/cart", cartRoutes);
 
-// Socket.io
+// Socket.io for real-time chat - Simplified approach
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // Join user to their personal room
   socket.on("join", (userId) => {
     socket.join(userId);
     console.log(`User ${userId} joined room`);
   });
 
+  // Handle sending messages - Simplified
   socket.on("sendMessage", async (messageData) => {
     try {
       const { senderId, receiverId, content, senderName, senderAvatar } =
         messageData;
 
+      // Create simple message object
       const messageToSave = {
         sender: senderId,
         receiver: receiverId,
@@ -141,20 +139,25 @@ io.on("connection", (socket) => {
         createdAt: new Date(),
       };
 
+      // Save to database (simplified)
       const Message = (await import("./models/Message")).default;
       const savedMessage = await new Message(messageToSave).save();
 
+      // Send to receiver with sender info
       const messageToSend = {
         id: savedMessage._id,
-        senderId,
-        senderName,
-        senderAvatar,
-        content,
+        senderId: senderId,
+        senderName: senderName,
+        senderAvatar: senderAvatar,
+        content: content,
         createdAt: savedMessage.createdAt,
-        tempId: messageData.tempId,
+        tempId: messageData.tempId, // For client-side message matching
       };
 
+      // Emit to receiver
       socket.to(receiverId).emit("newMessage", messageToSend);
+
+      // Confirm to sender
       socket.emit("messageSent", messageToSend);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -162,12 +165,13 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Handle disconnect - simplified
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
 
-// Error handling
+// Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
 
