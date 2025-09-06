@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "npx concurrently \"npm run dev\" \"npm run dev --prefix backend\"",
-    "dev": "vite",
+    "dev": "npx vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
