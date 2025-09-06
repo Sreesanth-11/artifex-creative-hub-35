@@ -3,22 +3,19 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-   "scripts": {
+"scripts": {
   "start": "npm run start:backend",
   "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-
-  "dev:frontend": "vite",
+  "dev:frontend": "npx vite",
   "dev:backend": "npm run dev --prefix backend",
-
   "build": "npm run build:frontend && npm run build:backend",
-  "build:frontend": "npm install && vite build",
+  "build:frontend": "vite build",
   "build:backend": "npm install --prefix backend && npm run build --prefix backend",
-
   "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
   "preview": "vite preview",
-
   "start:backend": "npm run start --prefix backend"
 }
+
 ,
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
