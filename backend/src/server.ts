@@ -32,9 +32,16 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+// Use a comma-separated list of origins from environment variables
+const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [
+  "http://localhost:8080",
+  "http://localhost:8081",
+];
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:8080", "http://localhost:8081"],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
@@ -60,7 +67,7 @@ app.use(morgan("combined")); // Logging
 app.use(limiter); // Rate limiting
 app.use(
   cors({
-    origin: ["http://localhost:8080", "http://localhost:8081"],
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -71,16 +78,8 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
-// Serve static files in production
-if (process.env.NODE_ENV === "production") {
-  // Serve frontend files
-  app.use(express.static(path.join(__dirname, "../../dist")));
-
-  // For any other route, serve the index.html
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../../dist", "index.html"));
-  });
-} else {
+// Development-only endpoints
+if (process.env.NODE_ENV !== "production") {
   // Serve static files from uploads directory in development
   app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 

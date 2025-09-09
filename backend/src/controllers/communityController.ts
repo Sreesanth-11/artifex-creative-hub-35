@@ -1,9 +1,15 @@
-import { Request, Response } from "express";
-import { Post, Comment } from "../models/Community";
+import { Request, Response, NextFunction } from "express";
+import { Post, Comment } from "../models";
 import mongoose from "mongoose";
 
-// Get all posts with filtering and pagination
-export const getPosts = async (req: Request, res: Response) => {
+// @desc    Get all posts with filtering and pagination
+// @route   GET /api/community
+// @access  Public (with optional auth)
+export const getPosts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -71,8 +77,14 @@ export const getPosts = async (req: Request, res: Response) => {
   }
 };
 
-// Get single post with comments
-export const getPost = async (req: Request, res: Response): Promise<void> => {
+// @desc    Get single post with comments
+// @route   GET /api/community/:postId
+// @access  Public (with optional auth)
+export const getPost = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const { postId } = req.params;
 
@@ -122,8 +134,14 @@ export const getPost = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// Create new post
-export const createPost = async (req: Request, res: Response) => {
+// @desc    Create new post
+// @route   POST /api/community
+// @access  Private
+export const createPost = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     const { title, content, category, tags, images } = req.body;
@@ -154,10 +172,13 @@ export const createPost = async (req: Request, res: Response) => {
   }
 };
 
-// Update post
+// @desc    Update post
+// @route   PUT /api/community/:postId
+// @access  Private
 export const updatePost = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
@@ -205,10 +226,13 @@ export const updatePost = async (
   }
 };
 
-// Delete post
+// @desc    Delete post
+// @route   DELETE /api/community/:postId
+// @access  Private
 export const deletePost = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
@@ -248,10 +272,13 @@ export const deletePost = async (
   }
 };
 
-// Toggle like on post
+// @desc    Toggle like on post
+// @route   POST /api/community/:postId/like
+// @access  Private
 export const togglePostLike = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
@@ -301,10 +328,13 @@ export const togglePostLike = async (
   }
 };
 
-// Add comment to post
+// @desc    Add comment to post
+// @route   POST /api/community/:postId/comments
+// @access  Private
 export const addComment = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
@@ -364,10 +394,13 @@ export const addComment = async (
   }
 };
 
-// Toggle like on comment
+// @desc    Toggle like on comment
+// @route   POST /api/community/comments/:commentId/like
+// @access  Private
 export const toggleCommentLike = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
@@ -417,10 +450,13 @@ export const toggleCommentLike = async (
   }
 };
 
-// Get trending topics
+// @desc    Get trending topics
+// @route   GET /api/community/trending/topics
+// @access  Public
 export const getTrendingTopics = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
@@ -465,10 +501,13 @@ export const getTrendingTopics = async (
   }
 };
 
-// Get featured users (most active/popular users)
+// @desc    Get featured users (most active/popular users)
+// @route   GET /api/community/featured/users
+// @access  Public
 export const getFeaturedUsers = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const limit = parseInt(req.query.limit as string) || 5;

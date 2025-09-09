@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
-import User from "../models/User";
-import Product from "../models/Product";
+import { User, Product } from "../models";
 
-// Get user's cart
+// @desc    Get user's cart
+// @route   GET /api/cart
+// @access  Private
 export const getCart = async (
   req: Request,
   res: Response,
@@ -21,7 +22,8 @@ export const getCart = async (
 
     const user = await User.findById(userId).populate({
       path: "cart.product",
-      select: "title description price originalPrice images category seller isActive",
+      select:
+        "title description price originalPrice images category seller isActive",
       populate: {
         path: "seller",
         select: "name avatar",
@@ -36,8 +38,8 @@ export const getCart = async (
     }
 
     // Filter out inactive products
-    const activeCartItems = user.cart.filter((item: any) => 
-      item.product && item.product.isActive
+    const activeCartItems = user.cart.filter(
+      (item: any) => item.product && item.product.isActive
     );
 
     res.json({
@@ -45,8 +47,10 @@ export const getCart = async (
       data: {
         cart: activeCartItems,
         totalItems: activeCartItems.length,
-        totalAmount: activeCartItems.reduce((total: number, item: any) => 
-          total + (item.product.price * item.quantity), 0
+        totalAmount: activeCartItems.reduce(
+          (total: number, item: any) =>
+            total + item.product.price * item.quantity,
+          0
         ),
       },
     });
@@ -56,7 +60,9 @@ export const getCart = async (
   }
 };
 
-// Add item to cart
+// @desc    Add item to cart
+// @route   POST /api/cart
+// @access  Private
 export const addToCart = async (
   req: Request,
   res: Response,
@@ -150,7 +156,9 @@ export const addToCart = async (
   }
 };
 
-// Update cart item quantity
+// @desc    Update cart item quantity
+// @route   PUT /api/cart/:productId
+// @access  Private
 export const updateCartItem = async (
   req: Request,
   res: Response,
@@ -219,7 +227,9 @@ export const updateCartItem = async (
   }
 };
 
-// Remove item from cart
+// @desc    Remove item from cart
+// @route   DELETE /api/cart/:productId
+// @access  Private
 export const removeFromCart = async (
   req: Request,
   res: Response,
@@ -272,7 +282,9 @@ export const removeFromCart = async (
   }
 };
 
-// Clear entire cart
+// @desc    Clear entire cart
+// @route   DELETE /api/cart
+// @access  Private
 export const clearCart = async (
   req: Request,
   res: Response,

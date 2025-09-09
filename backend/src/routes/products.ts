@@ -46,13 +46,14 @@ router.get("/categories", async (req, res) => {
 
 router.get("/", optionalAuth, getProducts);
 router.get("/:id", optionalAuth, getProduct);
-router.get("/seller/:sellerId", getSellerProducts);
+// This single route now handles fetching products for a specific seller,
+// including the currently authenticated user's products.
+router.get("/seller/:sellerId", optionalAuth, getSellerProducts);
 
 // Protected routes
 router.post("/", protect, createProductValidation, createProduct);
 router.put("/:id", protect, updateProductValidation, updateProduct);
 router.delete("/:id", protect, deleteProduct);
 router.post("/:id/like", protect, toggleLike);
-router.get("/my/products", protect, getSellerProducts);
 
 export default router;

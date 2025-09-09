@@ -60,13 +60,13 @@ const UserSchema = new Schema<IUser>(
     },
     followers: [
       {
-        type: String,
+        type: Schema.Types.ObjectId,
         ref: "User",
       },
     ],
     following: [
       {
-        type: String,
+        type: Schema.Types.ObjectId,
         ref: "User",
       },
     ],

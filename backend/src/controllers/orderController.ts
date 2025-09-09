@@ -13,7 +13,9 @@ const stripe = isTestMode
       apiVersion: "2023-10-16",
     });
 
-// Create a new order (purchase)
+// @desc    Create a new order (purchase)
+// @route   POST /api/orders
+// @access  Private
 export const createOrder = async (
   req: Request,
   res: Response,
@@ -126,7 +128,9 @@ export const createOrder = async (
   }
 };
 
-// Confirm order payment
+// @desc    Confirm order payment
+// @route   POST /api/orders/confirm
+// @access  Private
 export const confirmOrder = async (
   req: Request,
   res: Response,
@@ -172,7 +176,9 @@ export const confirmOrder = async (
       return res.json({
         success: true,
         message: "Order completed successfully (test mode)",
-        data: { order },
+        data: {
+          order,
+        },
       });
     }
 
@@ -205,7 +211,7 @@ export const confirmOrder = async (
         message: "Payment confirmed successfully",
         data: {
           orderId: order._id,
-          downloadUrl: `/api/downloads/${order.product}`,
+          downloadUrl: `/api/downloads/file/${order._id}`,
         },
       });
     } else {
@@ -224,7 +230,9 @@ export const confirmOrder = async (
   }
 };
 
-// Get user's orders
+// @desc    Get user's orders
+// @route   GET /api/orders
+// @access  Private
 export const getUserOrders = async (
   req: Request,
   res: Response,
@@ -296,7 +304,9 @@ export const getUserOrders = async (
   }
 };
 
-// Get seller's sales
+// @desc    Get seller's sales
+// @route   GET /api/orders/sales
+// @access  Private
 export const getSellerSales = async (
   req: Request,
   res: Response,
@@ -363,7 +373,9 @@ export const getSellerSales = async (
   }
 };
 
-// Get order by ID
+// @desc    Get order by ID
+// @route   GET /api/orders/:orderId
+// @access  Private
 export const getOrder = async (
   req: Request,
   res: Response,

@@ -370,7 +370,9 @@ export const getUserFollowing = async (
     const following = await User.find({
       _id: { $in: user.following || [] },
     })
-      .select("name avatar bio location isVerified followerCount followingCount")
+      .select(
+        "name avatar bio location isVerified followerCount followingCount"
+      )
       .skip(skip)
       .limit(limit);
 
@@ -380,7 +382,9 @@ export const getUserFollowing = async (
     const followingWithStatus = await Promise.all(
       following.map(async (person) => {
         const isFollowing = currentUserId
-          ? (await User.findById(currentUserId))?.following?.includes(person._id) || false
+          ? (await User.findById(currentUserId))?.following?.includes(
+              person._id
+            ) || false
           : false;
 
         // Get follower counts dynamically
@@ -453,7 +457,9 @@ export const getUserFollowers = async (
     const followers = await User.find({
       _id: { $in: user.followers || [] },
     })
-      .select("name avatar bio location isVerified followerCount followingCount")
+      .select(
+        "name avatar bio location isVerified followerCount followingCount"
+      )
       .skip(skip)
       .limit(limit);
 
@@ -463,7 +469,9 @@ export const getUserFollowers = async (
     const followersWithStatus = await Promise.all(
       followers.map(async (follower) => {
         const isFollowing = currentUserId
-          ? (await User.findById(currentUserId))?.following?.includes(follower._id) || false
+          ? (await User.findById(currentUserId))?.following?.includes(
+              follower._id
+            ) || false
           : false;
 
         // Get follower counts dynamically
@@ -610,7 +618,9 @@ const upload = multer({
   },
 });
 
-// Upload avatar
+// @desc    Upload avatar
+// @route   POST /api/users/upload-avatar
+// @access  Private
 export const uploadAvatar = [
   upload.single("avatar"),
   async (
@@ -667,7 +677,9 @@ export const uploadAvatar = [
   },
 ];
 
-// Upload banner
+// @desc    Upload banner
+// @route   POST /api/users/upload-banner
+// @access  Private
 export const uploadBanner = [
   upload.single("banner"),
   async (

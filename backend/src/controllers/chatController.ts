@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { Message, User } from "../models";
 import { validationResult } from "express-validator";
+import { User, Message } from "../models";
 
-// Get chat conversations for a user - Simplified approach
+// @desc    Get chat conversations for a user
+// @route   GET /api/chat/conversations
+// @access  Private
 export const getConversations = async (
   req: Request,
   res: Response,
@@ -91,7 +93,9 @@ export const getConversations = async (
   }
 };
 
-// Get messages for a specific conversation
+// @desc    Get messages for a specific conversation
+// @route   GET /api/chat/messages/:otherUserId
+// @access  Private
 export const getMessages = async (
   req: Request,
   res: Response,
@@ -144,7 +148,9 @@ export const getMessages = async (
   }
 };
 
-// Send a new message
+// @desc    Send a new message
+// @route   POST /api/chat/messages
+// @access  Private
 export const sendMessage = async (
   req: Request,
   res: Response,
@@ -213,7 +219,9 @@ export const sendMessage = async (
   }
 };
 
-// Mark messages as read
+// @desc    Mark messages as read
+// @route   PUT /api/chat/messages/:otherUserId/read
+// @access  Private
 export const markAsRead = async (
   req: Request,
   res: Response,
@@ -243,7 +251,9 @@ export const markAsRead = async (
   }
 };
 
-// Search users for chat
+// @desc    Search users for chat
+// @route   GET /api/chat/search
+// @access  Private
 export const searchUsers = async (
   req: Request,
   res: Response,
@@ -300,7 +310,9 @@ export const searchUsers = async (
   }
 };
 
-// Get user by ID for chat
+// @desc    Get user by ID for chat
+// @route   GET /api/chat/user/:userId
+// @access  Private
 export const getUserById = async (
   req: Request,
   res: Response,

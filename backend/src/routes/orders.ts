@@ -16,9 +16,7 @@ router.use(protect);
 
 // Validation middleware
 const createOrderValidation = [
-  body("productId")
-    .isMongoId()
-    .withMessage("Valid product ID is required"),
+  body("productId").isMongoId().withMessage("Valid product ID is required"),
 ];
 
 const confirmOrderValidation = [

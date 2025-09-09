@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import { Review, Product, User } from "../models";
 import { validationResult } from "express-validator";
 
-// Create a new review
+// @desc    Create a new review
+// @route   POST /api/reviews/product/:productId
+// @access  Private
 export const createReview = async (
   req: Request,
   res: Response,
@@ -90,7 +92,9 @@ export const createReview = async (
   }
 };
 
-// Get reviews for a product
+// @desc    Get reviews for a product
+// @route   GET /api/reviews/product/:productId
+// @access  Public
 export const getProductReviews = async (
   req: Request,
   res: Response,
@@ -137,7 +141,9 @@ export const getProductReviews = async (
   }
 };
 
-// Update a review
+// @desc    Update a review
+// @route   PUT /api/reviews/:reviewId
+// @access  Private
 export const updateReview = async (
   req: Request,
   res: Response,
@@ -208,7 +214,9 @@ export const updateReview = async (
   }
 };
 
-// Delete a review
+// @desc    Delete a review
+// @route   DELETE /api/reviews/:reviewId
+// @access  Private
 export const deleteReview = async (
   req: Request,
   res: Response,
@@ -256,7 +264,9 @@ export const deleteReview = async (
   }
 };
 
-// Toggle helpful vote on a review
+// @desc    Toggle helpful vote on a review
+// @route   POST /api/reviews/:reviewId/helpful
+// @access  Private
 export const toggleHelpfulVote = async (
   req: Request,
   res: Response,

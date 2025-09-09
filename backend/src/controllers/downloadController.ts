@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
-import Download from "../models/Download";
-import Product from "../models/Product";
-import Order from "../models/Order";
+import { Download, Product, Order } from "../models";
 import mongoose from "mongoose";
-import path from "path";
-import fs from "fs";
 
-// Get user's download history
+// @desc    Get user's download history
+// @route   GET /api/downloads
+// @access  Private
 export const getUserDownloads = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -49,7 +47,9 @@ export const getUserDownloads = async (req: Request, res: Response) => {
   }
 };
 
-// Record a download
+// @desc    Record a download
+// @route   POST /api/downloads/:productId
+// @access  Private
 export const recordDownload = async (
   req: Request,
   res: Response
@@ -105,7 +105,9 @@ export const recordDownload = async (
   }
 };
 
-// Get download statistics for a product (for sellers)
+// @desc    Get download statistics for a product (for sellers)
+// @route   GET /api/downloads/product/:productId/stats
+// @access  Private
 export const getProductDownloadStats = async (
   req: Request,
   res: Response
@@ -179,7 +181,9 @@ export const getProductDownloadStats = async (
   }
 };
 
-// Get user's download statistics
+// @desc    Get user's download statistics
+// @route   GET /api/downloads/stats
+// @access  Private
 export const getUserDownloadStats = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -231,7 +235,9 @@ export const getUserDownloadStats = async (req: Request, res: Response) => {
   }
 };
 
-// Download a file
+// @desc    Download a file
+// @route   GET /api/downloads/file/:orderId
+// @access  Private
 export const downloadFile = async (
   req: Request,
   res: Response

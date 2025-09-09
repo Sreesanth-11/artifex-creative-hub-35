@@ -4,17 +4,17 @@ import { IOrder } from "../types";
 const OrderSchema = new Schema<IOrder>(
   {
     buyer: {
-      type: String,
+      type: Schema.Types.ObjectId as any,
       ref: "User",
       required: true,
     },
     seller: {
-      type: String,
+      type: Schema.Types.ObjectId as any,
       ref: "User",
       required: true,
     },
     product: {
-      type: String,
+      type: Schema.Types.ObjectId as any,
       ref: "Product",
       required: true,
     },

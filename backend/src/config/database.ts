@@ -31,7 +31,7 @@ const connectDB = async (): Promise<void> => {
     });
 
     mongoose.connection.on("disconnected", () => {
-      console.log("⚠️  MongoDB disconnected");
+      console.log("⚠️  MongoDB disconnected");
     });
 
     mongoose.connection.on("reconnected", () => {
@@ -52,17 +52,17 @@ const connectDB = async (): Promise<void> => {
   } catch (error) {
     console.error("❌ Error connecting to MongoDB:", error);
     console.log("💡 Possible solutions:");
-    console.log("   1. Check if MongoDB is running (for local)");
-    console.log("   2. Verify your IP is whitelisted in MongoDB Atlas");
-    console.log("   3. Check your internet connection");
-    console.log("   4. Verify MongoDB URI in .env file");
+    console.log("   1. Check if MongoDB is running (for local)");
+    console.log("   2. Verify your IP is whitelisted in MongoDB Atlas");
+    console.log("   3. Check your internet connection");
+    console.log("   4. Verify MongoDB URI in .env file");
 
     // Don't exit in development, let the app continue
     if (process.env.NODE_ENV === "production") {
       process.exit(1);
     } else {
       console.log(
-        "⚠️  Continuing without database connection in development mode"
+        "⚠️  Continuing without database connection in development mode"
       );
     }
   }

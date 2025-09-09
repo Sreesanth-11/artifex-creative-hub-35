@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { Product, User, Review } from "../models";
 import { validationResult } from "express-validator";
+import mongoose from "mongoose";
 
-// Get all products with filtering and pagination
+// @desc    Get all products with filtering and pagination
+// @route   GET /api/products
+// @access  Public
 export const getProducts = async (
   req: Request,
   res: Response,
@@ -64,16 +67,29 @@ export const getProducts = async (
   }
 };
 
-// Get single product by ID
+// @desc    Get single product by ID
+// @route   GET /api/products/:id
+// @access  Public
 export const getProduct = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void | Response> => {
   try {
+    // Check if the provided ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid product ID",
+      });
+    }
+
     // Get the product with populated seller information
     const product = await Product.findById(req.params.id)
-      .populate("seller", "name avatar isVerified totalSales createdAt")
+      .populate(
+        "seller",
+        "name avatar isVerified totalSales createdAt followers"
+      )
       .populate({
         path: "likes",
         select: "name avatar",
@@ -133,7 +149,7 @@ export const getProduct = async (
         name: (product.seller as any)?.name || "Unknown Designer",
         avatar: (product.seller as any)?.avatar || "/api/placeholder/60/60",
         isVerified: (product.seller as any)?.isVerified || false,
-        followers: Math.floor(Math.random() * 10000) + 1000, // Mock data for now
+        followers: (product.seller as any)?.followers?.length || 0,
         products: (product.seller as any)?.totalSales || 0,
         joinDate: (product.seller as any)?.createdAt
           ? new Date((product.seller as any).createdAt).getFullYear()
@@ -143,7 +159,7 @@ export const getProduct = async (
         name: (product.seller as any)?.name || "Unknown Designer",
         avatar: (product.seller as any)?.avatar || "/api/placeholder/60/60",
         verified: (product.seller as any)?.isVerified || false,
-        followers: Math.floor(Math.random() * 10000) + 1000, // Mock data for now
+        followers: (product.seller as any)?.followers?.length || 0,
         products: (product.seller as any)?.totalSales || 0,
         joinDate: (product.seller as any)?.createdAt
           ? new Date((product.seller as any).createdAt).getFullYear()
@@ -200,7 +216,9 @@ export const getProduct = async (
   }
 };
 
-// Create new product
+// @desc    Create new product
+// @route   POST /api/products
+// @access  Private
 export const createProduct = async (
   req: Request,
   res: Response,
@@ -233,7 +251,9 @@ export const createProduct = async (
   }
 };
 
-// Update product
+// @desc    Update product
+// @route   PUT /api/products/:id
+// @access  Private
 export const updateProduct = async (
   req: Request,
   res: Response,
@@ -281,7 +301,9 @@ export const updateProduct = async (
   }
 };
 
-// Delete product
+// @desc    Delete product
+// @route   DELETE /api/products/:id
+// @access  Private
 export const deleteProduct = async (
   req: Request,
   res: Response,
@@ -319,7 +341,9 @@ export const deleteProduct = async (
   }
 };
 
-// Get products by seller
+// @desc    Get products by seller
+// @route   GET /api/products/seller/:sellerId
+// @access  Public
 export const getSellerProducts = async (
   req: Request,
   res: Response,
@@ -360,7 +384,9 @@ export const getSellerProducts = async (
   }
 };
 
-// Like/Unlike product
+// @desc    Like/Unlike product
+// @route   POST /api/products/:id/like
+// @access  Private
 export const toggleLike = async (
   req: Request,
   res: Response,

@@ -16,9 +16,7 @@ router.use(protect);
 
 // Validation middleware
 const addToCartValidation = [
-  body("productId")
-    .isMongoId()
-    .withMessage("Valid product ID is required"),
+  body("productId").isMongoId().withMessage("Valid product ID is required"),
   body("quantity")
     .optional()
     .isInt({ min: 1 })
@@ -26,18 +24,14 @@ const addToCartValidation = [
 ];
 
 const updateCartItemValidation = [
-  param("productId")
-    .isMongoId()
-    .withMessage("Valid product ID is required"),
+  param("productId").isMongoId().withMessage("Valid product ID is required"),
   body("quantity")
     .isInt({ min: 1 })
     .withMessage("Quantity must be a positive integer"),
 ];
 
 const removeFromCartValidation = [
-  param("productId")
-    .isMongoId()
-    .withMessage("Valid product ID is required"),
+  param("productId").isMongoId().withMessage("Valid product ID is required"),
 ];
 
 // Routes
